@@ -1,0 +1,100 @@
+.title {
+    text-align: center;
+}
+.scheduleContainer {
+  direction: rtl;
+  padding: 1rem;
+  position: relative;
+  overflow-x: auto;
+}
+
+.tooltipTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  min-width: 600px;
+}
+
+.tooltipTable th,
+.tooltipTable td {
+  border: 1px solid black;
+  padding: 8px;
+  min-width: 60px;
+  font-size: 14px;
+}
+
+.cellContent {
+  width: 100%;
+}
+
+.desktopView {
+  display: table;
+}
+.mobileView {
+  display: none;
+}
+
+.monthControls{
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-direction: row-reverse; /* כדי שהכפתור "חודש קודם" יהיה בימין */
+  margin: 10px 0 16px;
+}
+
+.navBtn{
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+.navBtn:hover{ background:#f3f4f6; }
+
+.addBtn{
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: #0ea5e9; /* כחול נעים */
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.addBtn:hover{ filter: brightness(0.95); }
+
+/* עוגן שקוף בראש הדף כדי שה-IntersectionObserver ידע מתי יצאנו למטה */
+.fabAnchor {
+  display: block;
+  height: 1px;
+  width: 1px;
+}
+
+/* אופציונלי: לא להסתיר את ה-FAB בדסקטופ אם רוצים רק במובייל */
+/* @media (min-width: 900px) { .fab { display: none; } } */
+
+/* רספונסיביות */
+@media screen and (max-width: 768px) {
+  .desktopView {
+    display: none;
+  }
+
+  .mobileView {
+    display: block;
+    padding: 1rem;
+  }
+
+  .lessonCard {
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+  }
+
+  .lessonCard p {
+    margin: 0.3rem 0;
+  }
+}
+

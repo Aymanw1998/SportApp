@@ -25,6 +25,8 @@ async function seed() {
         }
        //console.log("***************end - connectDB************")
 
+    // await mongoose.connection.db.dropDatabase();
+    // console.log("🗑️ Entire database dropped.");
     const now = new Date();
     const users = [];
     console.log("start create");

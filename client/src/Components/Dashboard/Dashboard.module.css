@@ -1,0 +1,129 @@
+.title {
+    text-align: center;
+}
+
+.usersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  direction: rtl; /* אם אתה כותב בעברית */
+}
+
+.card {
+  aspect-ratio: 1 / 1; /* ריבוע */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  font-family: arial;
+  padding: 12px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.02);
+}
+
+.cardTitle {
+  color: #333;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.cardButton {
+  border: none;
+  outline: 0;
+  padding: 6px;
+  color: white;
+  background-color: #000;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.cardButton:hover {
+  opacity: 0.8;
+}
+
+.lessonsTableContainer {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 10px;
+  direction: rtl; /* כי הטקסט בעברית */
+}
+
+.lessonsTableContainer h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.lessonsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.lessonsTable th,
+.lessonsTable td {
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.lessonsTable th {
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.lessonsTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.lessonsTable tr:hover {
+  background-color: #eef;
+  cursor: pointer;
+}
+
+.systemMessage {
+  background-color: #fff3cd; /* צבע צהוב בהיר */
+  color: #856404; /* טקסט כהה */
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ffeeba;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  direction: rtl;
+  text-align: right;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  background-color: #fff3cd; 
+  padding: 1rem; 
+  border-radius: 8px; 
+  border: 1px solid #ffeeba; 
+  margin-bottom: 1rem;
+}
+
+.systemMessage strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.systemMessage .close-btn {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #856404;
+  cursor: pointer;
+}
+

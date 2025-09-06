@@ -1,266 +1,431 @@
-const Schema = require("./User.model");
-const jwt = require("jsonwebtoken");
+// Entities/User/user.controller.js
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('./user.model');
+const Subs = require('../Subs/Subs.model'); // אם צריך לאמת קיום מנוי
+                                     // מודל משתמש (mongoose)
+const {
+  signAccessToken,
+  signRefreshToken,
+  setRefreshCookie,
+  clearRefreshCookie,
+  sha256,
+  computeAccessExpMsFromNow,
+} = require('../../utils/jwt');
+
+const { logWithSource } = require('../../middleware/logger');
+
+// מסיר שדות רגישים
+function sanitize(u) {
+  if (!u) return u;
+  const o = u.toObject ? u.toObject() : u;
+  delete o.password;
+  delete o.refreshHash;
+  return o;
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') return new Date(value);
+
+  if (typeof value === 'string') {
+    const s = value.trim();
+
+    // dd-mm-yyyy או dd/mm/yyyy
+    let m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    if (m) {
+      const [, dd, mm, yyyy] = m.map(Number);
+      return new Date(Date.UTC(yyyy, mm - 1, dd)); // UTC כדי להימנע מהפתעות שעון קיץ
+    }
+
+    // yyyy-mm-dd (ISO קצר)
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [, yyyy, mm, dd] = m.map(Number);
+      return new Date(Date.UTC(yyyy, mm - 1, dd));
+    }
+
+    const ts = Date.parse(s);
+    if (!Number.isNaN(ts)) return new Date(ts);
+  }
+  return null; // לא תקין
+}
 
 const buildData = (body) => ({
-    tz: body.tz,
-    username:body.username,
-    password: body.password,
-    firstname: body.firstname,
-    lastname: body.lastname,
-    birth_date: body.birth_date,
-    gender: body.gender, //{ type: String, enum: ['זכר', "נקיבה"]},
-    phone: body.phone,
-    email: body.email,
-    city: body.city,
-    street: body.street,
-    role: body.role, //{ type: String, enum: ['מנהל', 'מאמן', 'מתאמן'], required: true },
-    list_class: body.list_class || [],
-    max_class: body.max_class || 1,
-    wallet: body.wallet || 0,
+  tz: body.tz?.trim(),
+  password: body.password || null, // יגובה ב-pre('save') במודל
+  firstname: body.firstname,
+  lastname: body.lastname,
+  birth_date: toDate(body.birth_date || null),
+  gender: body.gender,
+  phone: body.phone,
+  email: body.email?.toLowerCase().trim(),
+  city: body.city,
+  street: body.street,
+  role: body.role,
+  // list_class: body.list_class || [],
+  // max_class: body.max_class ?? 1,
+  wallet: body.wallet ?? 0,
 });
 
-// פונקציות יצירת טוקנים
-const generateAccessToken = (id) => {
-    console.log(process.env.JWT_SECRET.green);
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-};
-
-const generateRefreshToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
-};
-
-// רישום משתמש חדש
 const register = async (req, res) => {
-    console.log("*********Start Register*************");
-    try {
-        const model = buildData(req.body);
-        const schemaExists = await Schema.findOne({ username: model.username });
-        if (schemaExists) return res.status(400).json({ message: 'המשתמש קיים' });
+  try {
+    const model = buildData(req.body);
+    const exists = await User.findOne({ tz: model.tz });
+    if (exists) return res.status(400).json({ message: 'המשתמש קיים' });
 
-        const schema = await Schema.create({model, created: new Date()});
-        const user = await Schema.findOne({ username: model.username });
+    const created = await User.create({ ...model, createdAt: new Date() });
 
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-        user.refreshToken = refreshToken;
-        await user.save();
+    const accessToken  = signAccessToken (({ _id: created._id.toString(), tz: created.tz, role: created.role }));
+    const { exp } = jwt.decode(accessToken);       // exp in seconds
+    const refreshToken  = signAccessToken (({ _id: created._id.toString(), tz: created.tz, role: created.role }));
 
-        res
-          .cookie('refreshToken', refreshToken, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'Strict',
-              maxAge: 7 * 24 * 60 * 60 * 1000,
-          })
-          .status(201)
-          .json({ accessToken, user });
+    await User.findByIdAndUpdate(created._id, { refreshToken });
+    setRefreshCookie(res, refreshToken);
 
-        console.log("*********End Register - Success*************");
-    } catch (error) {
-        logWithSource(`err ${error}`.red)
-        return res.status(400).json({ message: error.message });
-    }
+    return res.status(201).json({
+      ok: true,
+      accessToken, // הקליינט ישמור וישלח כ-Bearer
+      expToken: exp * 1000, 
+      user: created,
+    });
+  } catch (error) {
+    logWithSource(`err ${error}`.red);
+    return res.status(400).json({ message: error.message });
+  }
 };
 
-// התחברות
 const login = async (req, res) => {
-    console.log("*********Start Login*************");
-    const { username, password } = req.body;
-    try {
-        const user = await Schema.findOne({ username, password });
-        if (!user) return res.status(400).json({ message: "אחד הנתונים שגויים" });
-        console.log(`user and pass in ok`.green);
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-        const  expirationTime = Date.now() + 24 * 60* 60* 1000; 
-        user.refreshToken = refreshToken;
-        await user.save();
-        console.log("*********End Login - Success*************");
-        return res
-          .cookie('refreshToken', refreshToken, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'Strict',
-              maxAge: 7 * 24 * 60 * 60 * 1000,
-          })
-          .status(200)
-          .json({ accessToken, user, expirationTime});
-    } catch (error) {
-        logWithSource(`err ${error}`.red)
-        return res.status(400).json({ message: error.message });
-    }
+  logWithSource("login")
+  const { tz, password } = req.body || {};
+  try {
+    if (!tz || !password) return res.status(400).json({ code: 'BAD_INPUT', message: 'Tz and password are required' });
+
+    // מאתר את המשתמש לפי שם משתמש בנורמליזציה (lowercase/trim)
+    const normTz = String(tz).trim();         // נרמול בסיסי    
+    const user = await User.findOne({ tz: normTz });
+    console.log("normTz", normTz);
+    console.log("user", user);
+    if (!user) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Invalid tz or password' });
+    console.log("login user", user);
+    // משווה סיסמה (השוואה לסיסמה המוצפנת במאגר)
+    const ok = await bcrypt.compare(password, user.password);
+    console.log("login password ok", ok);
+    if (!ok) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Invalid tz or password' });
+
+    // יוצר access token קצר-תוקף
+    const accessToken = signAccessToken({ id: user._id.toString(), tz: user.tz, role: user.role });
+
+    // יוצר refresh token ארוך-תוקף
+    const refreshToken = signRefreshToken({ id: user._id.toString(), tz: user.tz, role: user.role });
+
+        // שומר במסד רק hash של ה-refresh (לא את הטוקן עצמו)
+    user.refreshHash = sha256(refreshToken);
+    await user.save();
+
+    // מציב את ה-refresh בקוקי HttpOnly (לא נגיש ל-JS בדפדפן)
+    setRefreshCookie(res, refreshToken);
+
+    // מחשב זמן תפוגת access כדי להחזיר ללקוח (אופציונלי)
+    const expirationTime = computeAccessExpMsFromNow();
+    // מחזיר ללקוח: access token + פרטי משתמש ללא שדות רגישים
+    const safeUser = user.toObject();
+    delete safeUser.password;
+    delete safeUser.refreshHash;
+
+    return res.status(200).json({
+      ok: true,
+      accessToken,
+      expirationTime,   // epoch ms – יעזור לקליינט לתזמן רענון
+      user: safeUser,
+    });
+  } catch (error) {
+    // שגיאה כללית
+    logWithSource({ code: 'SERVER_ERROR', message: error.message })
+    return res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
+  }
 };
 
-// רענון access token
 const refreshAccessToken = async (req, res) => {
-    const token = req.cookies.refreshToken;
-    if (!token) return res.status(401).json({ message: 'אין Refresh Token' });
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-        const user = await Schema.findById(decoded.id);
-        if (!user || user.refreshToken !== token)
-            return res.status(403).json({ message: 'Token לא תקיף' });
+    // קורא את ה-refresh מתוך cookie HttpOnly
+    const token = req.cookies?.refresh;
+    if (!token) return res.status(401).json({ code: 'NO_REFRESH', message: 'Missing refresh cookie' });
 
-        const newAccessToken = generateAccessToken(user._id);
-        res.status(200).json({ accessToken: newAccessToken });
-    } catch (err) {
-        return res.status(403).json({ message: 'Token לא תקף' });
+    // מאמת את ה-refresh token עם הסוד המתאים
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET, {
+      algorithms: ['HS256'],
+      clockTolerance: 5,
+    });
+
+    // מאתר את המשתמש לפי מזהה מתוך ה-refresh
+    const user = await User.findById(payload.id);
+    if (!user) return res.status(401).json({ code: 'USER_NOT_FOUND', message: 'User not found' });
+
+    // בודק שה-hash של ה-refresh שנשמר במסד תואם לטוקן שב-cookie
+    const matches = user.refreshHash && user.refreshHash === sha256(token);
+    if (!matches) return res.status(401).json({ code: 'REFRESH_MISMATCH', message: 'Refresh not valid' });
+
+    // *** רוטציה בטוחה (מומלץ): מנפק refresh חדש ***
+    const newRefresh = signRefreshToken({ id: user._id.toString(), tz: user.tz, role: user.role });
+    user.refreshHash = sha256(newRefresh);
+    await user.save();
+    setRefreshCookie(res, newRefresh);
+
+    // מנפק access חדש קצר-תוקף
+    const accessToken = signAccessToken({ id: user._id.toString(), tz: user.tz, role: user.role });
+    const expirationTime = computeAccessExpMsFromNow();
+
+    return res.status(200).json({ ok: true, accessToken, expirationTime });
+  } catch (err) {
+    logWithSource(`err ${error}`.red);
+    // אם התוקף פג/חתימה לא נכונה – החזר שגיאה מתאימה
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ code: 'REFRESH_EXPIRED', message: 'Refresh expired' });
     }
+    return res.status(401).json({ code: 'REFRESH_FAILED', message: 'Refresh failed' });
+  }
 };
 
-// התנתקות
 const logout = async (req, res) => {
-    const token = req.cookies.refreshToken;
+try {
+    // אם המשתמש מחובר – אפשר לאפס את ה-refreshHash שלו
+    const token = req.cookies?.refresh;
     if (token) {
-        const user = await Schema.findOne({ refreshToken: token });
-        if (user) {
-            user.refreshToken = null;
-            await user.save();
-        }
-        res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'Strict' });
+      try {
+        const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+        await User.findByIdAndUpdate(payload.id, { $unset: { refreshHash: 1 } });
+      } catch { /* מתעלמים – גם אם לא הצליח */ }
     }
-    res.status(200).json({ message: 'יציאה מהמערכת' });
+
+    // מנקה את ה-cookie בדפדפן
+    clearRefreshCookie(res);
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    logWithSource(`err ${error}`.red);
+    return res.status(500).json({ code: 'SERVER_ERROR', message: err.message });
+  }
 };
 
-// פונקציות CRUD נוספות:
-const getAllU = async (req, res) => {
-    try {
-        const users = await Schema.find();
-        return res.status(200).json(users);
-    } catch (err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
+// --- CRUD (כפי שיש לך) ---
+const getAllU = async (_req, res) => {
+  try {
+    const users = await User.find().lean();
+    return res.status(200).json({ ok: true, users: users.map(sanitize) });
+  } catch (err) {
+    logWithSource(`err ${error}`.red);
+    return res.status(500).json({ ok: false, users: [] });
+  }
 };
 
 const getOneU = async (req, res) => {
-    try {
-        const user = await Schema.findOne({tz: req.params.id});
-        const user2 = await Schema.findOne({_id: req.params.id});
-        if(user2) return res.status(200).json(user2);
-        if(user) return res.status(200).json(user);
-    } catch (err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
+  try {
+    logWithSource("getOneU", req.params);
+    const { tz: param } = req.params;
+    let user = null;
+    
+    if (mongoose.Types.ObjectId.isValid(param)) user = await User.findById(param);
+    else user = await User.findOne({tz: param});
+
+    logWithSource("user", user);
+    if (!user) user = await User.findOne({ tz: String(param).trim() });
+    if (!user) return res.status(404).json({ ok: false, message: 'לא נמצא' });
+    return res.status(200).json({ ok: true, user: sanitize(user) });
+  } catch (err) {
+    logWithSource(`err ${error}`.red);
+    return res.status(500).json({ ok: false, message: err.message });
+  }
 };
 
-const postU = async(req, res) => {
-    try{
-        console.log("body", req.body);
-        const model = buildData(req.body);
-        const schemaExists = await Schema.findOne({ username: model.username });
-        if (schemaExists) return res.status(400).json({ message: 'המשתמש קיים' });
-        const schema = await Schema.create({...model, created: new Date()});
-        const users = await Schema.find();
-        return res.status(200).json(users);
-
-    }catch(err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);    
+const postU = async (req, res) => {
+    try {
+    const model = buildData(req.body);
+    if (!model.tz || !model.password) {
+      return res.status(400).json({ ok: false, message: 'tz and password are required' });
     }
-}
+    const exists = await User.findOne({ tz: model.tz });
+    if (exists) return res.status(409).json({ ok: false, message: 'המשתמש קיים' });
+
+    const created = await User.create({ ...model, createdAt: new Date() });
+    return res.status(201).json({ ok: true, user: sanitize(created) });
+  } catch (err) {
+    logWithSource(`err ${err}`.red);
+    return res.status(500).json({ ok: false, message: err.message });
+  }
+};
+
+//USER{} => {..}
 const putU = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const model = buildData(req.body);
-        const updated = await Schema.findOneAndUpdate({tz: id}, {...model, update: new Date()}, { new: true });
-        const all = await Schema.find();
-        return res.status(200).json({ users: all });
-    } catch (err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
+  try {
+    const tz = String(req.params.tz).trim();
+    const user = await User.findOne({ tz });
+    if (!user) return res.status(404).json({ ok: false, message: 'User not found' });
+
+    const allowed = new Set([
+      'password','firstname','lastname','birth_date','gender',
+      'phone','email','city','street','role','wallet','list_class','max_class','subs'
+    ]);
+
+    const body = req.body ?? {};
+
+    for (const [k, v] of Object.entries(body)) {
+      // עדכן רק מפתחות מותרים
+      if (!allowed.has(k)) continue;
+
+      // אל תיגע בסיסמה אלא אם נשלח מחרוזת לא ריקה
+      if (k === 'password') {
+        if (typeof v !== 'string' || v.trim() === '') continue; // דלג אם לא שינו סיסמה
+        user.password = v; // ה-pre('save') יעשה hash
+        // אופציונלי: user.mustChangePassword = false; // או true לפי הלוגיקה שלך
+        continue;
+      }
+
+      // מיזוג חלקי למנוי (במקום לדרוס את כל האובייקט)
+      if (k === 'subs' && v && typeof v === 'object') {
+        user.subs = { ...(user.subs?.toObject?.() ?? user.subs ?? {}), ...v };
+        continue;
+      }
+
+      // אל תדרוס ערכים קיימים עם undefined
+      if (typeof v === 'undefined') continue;
+
+      // הרשה null/"" אם זה רצונך לאפס שדות (מלבד password)
+      user.set(k, v);
     }
+
+    await user.save();
+    return res.status(200).json({ ok: true, user: sanitize(user) });
+  } catch (err) {
+    logWithSource(`err ${err}`.red);
+    return res.status(500).json({ ok: false, message: err.message });
+  }
 };
+
 
 const deleteU = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await Schema.findOneAndDelete({tz: id});
-        const all = await Schema.find();
-        return res.status(200).json({ users: all });
-    } catch (err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
+  try {
+    const deleted = await User.findOneAndDelete({ tz: String(req.params.tz).trim() });
+    if (!deleted) return res.status(404).json({ ok: false, message: 'User not found' });
+        return res.status(200).json({ ok: true, removed: true });
+  } catch (err) {
+    logWithSource(`err ${error}`.red);
+    return res.status(500).json({ ok: false, message: err.message });
+  }
 };
 
 const getme = async (req, res) => {
-    try {
-        const me = await Schema.findById(req._id);
-        return res.status(200).json({ schema: me });
-    } catch (err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
+  try {
+    // req.user מולא במידלוור authRequired
+    console.log("getme func server", req.user);
+    const user = await User.findById(req.user.id).lean();
+    if (!user) return res.status(401).json({ code: 'USER_NOT_FOUND' });
+
+    return res.status(200).json({ ok: true, user: sanitize(user) });
+  } catch (err) {
+    logWithSource({ code: 'SERVER_ERROR', message: err.message })
+    return res.status(500).json({ code: 'SERVER_ERROR', message: err.message });
+  }
+};
+
+const addSubForUser = async (req, res) => {
+  try {
+    //Sub exist
+    const subId = String(req.params.subId).trim();
+    const sub = await Subs.findById(subId);
+    if(!sub) return res.status(404).json({ok: false, message: 'Subscription not found'});
+
+    //user exist
+    const user = await User.findOne({tz: req.user.tz});
+    if(!user) return res.status(404).json({ok: false, message: 'User not found'})
+    
+    const now = new Date();
+    user.subs = {
+      id: sub._id,
+      start: {
+        day: now.getDate(), 
+        month: now.getMonth() + 1, 
+        year: now. getFullYear(),
+      }
     }
+    user.active = 0;
+    user.updatedAt = now;
+    await user.save();
+    
+    return res.status(200).json({ok: true, user: sanitize(user)});
+  } catch (err) { logWithSource(`err ${err}`.red); return res.status(500).json({ok: false, message: err.message}); }
+};
+
+const removeSubForUser = async (req, res) => {
+  try {
+    //user exist
+    const user = await User.findOne({tz: req.user.tz});
+    if(!user) return res.status(404).json({ok: false, message: 'User not found'})
+    
+    user.subs = { id: undefined };
+    user.active = 0;
+    user.updatedAt = new Date();
+    await user.save();
+
+    return res.status(200).json({ ok: true, user: sanitize(user) });
+  } catch (err) { logWithSource(`err ${err}`.red); return res.status(500).json({ok: false, message: err.message}); }
+};
+
+const countWithoutSubsForUser = async (req, res) => {
+  try {
+    const current = await User.findOne({ tz: req.user.tz }).select('active');
+    const nextActive = (current?.active || 0) + 1;
+    const updated = await User.findOneAndUpdate(
+      { tz: req.user.tz },
+      { active: nextActive, updatedAt: new Date() },
+      { new: true }
+    );
+    return res.status(200).json({ ok: true, user: sanitize(updated) });
+  } catch (err) { logWithSource(`err ${err}`.red); return res.status(500).json({ok: false, message: err.message}); }
+};
+
+
+const CheckPasswordisGood = async (req, res) => {
+    const { tz, password } = req.body || {};
+    console.log("CheckPasswordisGood", req.body);
+  try {
+    if (!tz || !password) return res.status(400).json({ code: 'BAD_INPUT', message: 'Tz and password are required' });
+
+    // מאתר את המשתמש לפי שם משתמש בנורמליזציה (lowercase/trim)
+    const normTz = String(tz).trim();         // נרמול בסיסי    
+    const user = await User.findOne({ tz: normTz });
+    console.log("normTz", normTz);
+    console.log("user", user);
+    if (!user) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Invalid tz or password' });
+    console.log("login user", user);
+    // משווה סיסמה (השוואה לסיסמה המוצפנת במאגר)
+    const ok = await bcrypt.compare(password, user.password);
+    console.log("login password ok", ok);
+    if (!ok) return res.status(300).json({ok: false, PasswordCorrect: false });
+
+    return res.status(200).json({ ok: true,  PasswordCorrect: true});
+  } catch (error) {
+    // שגיאה כללית
+    logWithSource({ code: 'SERVER_ERROR', message: error.message })
+    return res.status(500).json({ ok: false, code: 'SERVER_ERROR', message: error.message });
+  }
+
 }
-
-const addSubForUser = async(req, res) => {
-    try{
-        const {subId} = req.params;
-        const subs = {
-                type: subId, 
-                start: {
-                    day: new Date().getDate(),
-                    month: new Date().getMonth(),
-                    year: new Date().getFullYear(),
-                }
-        }
-        const updated = await Schema.findOneAndUpdate({tz: req.user.tz}, {subs: subs, active: 0,update: new Date()}, { new: true });
-        return res.status(200).json(updated);
-
-    } catch(err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
-}
-
-const removeSubForUser = async(req, res) => {
-    try{
-        const subs = {
-                type: "", 
-                start: {
-                    day: 0,
-                    month: 0,
-                    year: 0,
-                }
-        }
-        const updated = await Schema.findOneAndUpdate({tz: req.user.tz}, {subs: subs, active: 0,update: new Date()}, { new: true });
-        return res.status(200).json({ user: updated });
-
-    } catch(err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
-}
-
-const countWithoutSubsForUser = async(req, res) => {
-    try{
-        const updated = await Schema.findOneAndUpdate({tz: req.user.tz}, {active: userInfo.active + 1,update: new Date()}, { new: true });
-        if(updated.active >= 3) {
-            //send user to table not actives;
-        }
-        return res.status(200).json({ user: updated });
-
-    } catch(err) {
-        logWithSource(`err ${err}`.red)
-        return res.status(500).json([]);
-    }
-}
-
 module.exports = {
-    register,
-    login,
-    refreshAccessToken,
-    logout,
-    getme,
-    getAllU,
-    getOneU,
-    postU,
-    putU,
-    deleteU,
-    addSubForUser,
-    removeSubForUser,
-    countWithoutSubsForUser,
+  CheckPasswordisGood,
+  register,
+  login,
+  refreshAccessToken,
+  logout,
+  getme,
+  getAllU,
+  getOneU,
+  postU,
+  putU,
+  deleteU,
+  addSubForUser,
+  removeSubForUser,
+  countWithoutSubsForUser,
 };

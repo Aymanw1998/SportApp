@@ -1,27 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react'
-import "./LoginPage.css"
+import styles from "./LoginPage.module.css"
 
 //LogoIMG
 import LogoIMG from "./../../../images/logo.png"
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
-import {login} from "../../services/auth/fuctionsAuth"
-const infoSystem = {
-    username: process.env.REACT_APP_USERNAME_SYSTEM,
-    password: process.env.REACT_APP_PASSWORD_SYSTEM,
-}
+import { login, getMe } from '../../../WebServer/services/auth/fuctionsAuth';
+import { toast } from '../../../ALERT/SystemToasts';
+
 export default function LoginPage() {
-
     const navigate = useNavigate();
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const location = useLocation();
 
-    const usernameRef = useRef(null);
+    const [tz, setTz] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading,  setLoading]  = useState(false);
+
+    const tzRef = useRef(null);
     const passwordRef = useRef(null);
-
+    
     const handleKeyDown = (e) => {
         console.log(e.target.name, e.key);
-        if(e.target.name == "username" && e.key == "Enter") {
+        if(e.target.name == "tz" && e.key == "Enter") {
             passwordRef.current.focus();
         }
         else if(e.target.name == "password" && e.key == "Enter"){
@@ -29,58 +29,57 @@ export default function LoginPage() {
         }
     }
     const handleLogin = async(e)=> {
-        if(username == "" || password == ""){
-            alert("يوجد معلومات ناقصة");
+        if(tz == "" || password == ""){
+            toast.warn("יש שדות ריקות");
             return;
         }
-        console.log("login system", infoSystem);
-        console.log("login me", {username: username, password: password})
-        try{
-            const res = await login(username, password);
-            const {accessToken, expirationTime, user, message, status} = res;
-            const userstr = JSON.stringify(user);
-            console.log("status", res. status, user, userstr);
-            console.log("res login", status == 200 ? {accessToken, expirationTime, user}: {message});
-            if (status === 200 && username.toLowerCase() === user.username.toLowerCase() && password === user.password) {
-                //e.preventDefault(); // Prevent actual form submission
-                // Save token and expiry in localStorage
-                localStorage.setItem('authToken', accessToken);
-                localStorage.setItem('user', userstr);
-                localStorage.setItem('role', user.role);
-                localStorage.setItem('tokenExpiry', expirationTime);
-                if(user.role === "מתאמן" && user.wallet > 0 && user.subs.type.length >= 0){
-                    alert("אין לך מנוי כדי להשתמש במערכת, נא בחר מנוי אפשרי");
-                    navigate("/selectSubfor/"+user.tz)
-                }
-                else if(user.role === "מתאמן" && user.wallet > 0 && user.subs.type.length >= 0){
-                    //אין לה אישור לבחור מנוי, היא צריכה לקבל אישור לבחירה
-                    alert("אין לך מנוי, ואין לך כסף לרכישה, נא להודיע למנהל");
+        setLoading(true);
+        try {
+            // login: שומר accessToken + isLoggedIn + role (לפי ה-services שלנו)
+            const me = await login(tz, password);
+            console.log("me", me?.role === 'מתאמן', !me?.subs?.id, me.wallet > 0)
+            // כללי מנוי למתאמן
+            if (me?.role === 'מתאמן' && !me?.subs?.id) {
+                if ((me?.wallet) > 0) {
+                    toast.warn('אין לך מנוי כדי להשתמש במערכת, נא בחר מנוי אפשרי');
+                    navigate(`/selectSubfor/${encodeURIComponent(me.tz)}`);
+                    return;
+                } else {
+                    toast.error('אין לך מנוי, ואין לך כסף לרכישה, נא להודיע למנהל');
                     return;
                 }
-                alert(`ה${user.role} ${user.firstname + " " + user.lastname},ברוך הבא למערכת`);
-                navigate("/dashboard/get")
-                window.location.reload(); // רענון הדף
             }
-            else alert("اسم المستخدم او كلمة المرور ليست صحيحة");
-        } catch(err) {console.error("Login error: ", err.response?.data || err.message); alert(err.response?.data.message || err.message)}
-    }
+
+            // הודעת ברוך הבא (אופציונלי)
+            if (me?.firstname || me?.lastname) {
+                toast.success(`ה${me.role} ${[me.firstname, me.lastname].filter(Boolean).join(' ')}, ברוך הבא למערכת`);
+            }
+
+            // נווט חזרה לנתיב המבוקש או לדאשבורד
+            const from = location.state?.from?.pathname || '/dashboard/get';
+            navigate(from, { replace: true });
+        } catch (err) {
+            console.error('Login error:', err?.response?.data || err.message);
+        } finally {
+        setLoading(false);
+        }
+    };
+
     return (
-        <div className="container">
-            <div className="left-panel">
-                {/* <div className="logo"><img src={LogoIMG}/></div> */}
-                <div className="welcome-text">
+        <div className={styles.container}>
+            <div className={styles.leftPanel}>
+                <div className={styles.welcomeText}>
                     <h2>התחברות</h2>
                 </div>
             </div>
-            <div className="right-panel">
-                <div className="login-form">
-                    <div className="logo logo-login"><img src={LogoIMG}/></div>
-                    <h2>تسجيل الدخول</h2>
-                    <input ref={usernameRef} name="username" type="text" placeholder="اسم المستخدم" value={username} onChange={(e)=>setUsername(e.target.value)} onKeyDown={handleKeyDown} required />
-                    <input ref={passwordRef} name="password" type="password" placeholder="كلمة المرور" value={password} onChange={(e)=>setPassword(e.target.value)} onKeyDown={handleKeyDown} required />
-                    <a href="#" className="forgot">نسيت كلمة السر؟</a>
-                    <button type="submit" onClick={handleLogin}>دخول</button>
-                    {/* <p className="create-account">Don't have any account? <a href="#">Create an account</a></p> */}
+            <div className={styles.rightPanel}>
+                <div className={styles.loginForm}>
+                    <div className={`${styles.logo} ${styles.logoDisNone}`}><img src={LogoIMG}/></div>
+                    <h2>התחברות</h2>
+                    <input ref={tzRef} name="tz" type="text" placeholder="תעודת זיהות" value={tz} onChange={(e)=>setTz(e.target.value)} onKeyDown={handleKeyDown} required />
+                    <input ref={passwordRef} name="password" type="password" placeholder="סיסמה" value={password} onChange={(e)=>setPassword(e.target.value)} onKeyDown={handleKeyDown} required />
+                    <button type="submit" onClick={handleLogin}>{loading ? '...' : 'כניסה'}</button>
+                    <a href='/quotation'>בדיקת הצעת מחיר לרישום מהיום הזה</a>
                 </div>
             </div>
         </div>

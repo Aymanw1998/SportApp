@@ -1,5 +1,5 @@
 //server
-const Schema = require("./Training.model")
+const Training = require("./Training.model")
 const { logWithSource } = require("../../middleware/logger");
 const buildStudentData = (body) => ({
     name: body.name,
@@ -8,85 +8,90 @@ const buildStudentData = (body) => ({
 
 
 const getAll = async(req, res) => {
-    console.log("start-getAll")
+    logWithSource("start-getAll")
     try{
-        const schema = await Schema.find();
-        console.log("schema", schema, schema.length);
-        return schema.length > 0 ? res.status(200).json({schema}) : res.status(404).json([]);
+        const schema = await Training.find().sort({name: 1}).lean();
+        return res.status(200).json({ok: true, trainings: schema})
     }
     catch(err){
         logWithSource(`err: ${err}`.red)
-        return res.status(500).json([]);
+        return res.status(500).json({ok: false, message: err.message});
     }
 }
 
 const getOne = async (req, res) => {
-  console.log("start-getOne")
     try{
-        console.log(req.params);
-        const schema = await Schema.findOne({name: req.params.name});
-        console.log("schema", schema);
-        return schema ? res.status(200).json({schema}) : res.status(404).json([]);
+        logWithSource(req.params);
+        const schema = await Training.findOne({name: req.params.name});
+        logWithSource("schema", schema);
+        res.status(200).json({ok: true, training: schema});
     }
     catch(err){
         logWithSource(`err: ${err}`.red)
-        return res.status(500).json([]);
+        return res.status(500).json({ok: false, message: err.message});
     }
 }
 const postOne = async(req, res) => {
-    console.log("start-create")
-    try{
-        req.body = {...req.body};
-        const model = buildStudentData(req.body) 
-        const isFindByName = await Schema.find({name: model.name});
-        if(isFindByName.length > 0){
-            return res.status(301).json({warning: "קיים אימון באותו שם "});
+    try {
+        const model = buildData(req.body);
+        if (!model.name) {
+        return res.status(400).json({ ok: false, message: 'name הוא שדה חובה' });
         }
-        const schema = new Schema({...model, created: new Date()});
-        console.log("create in database")
-        await schema.save();
 
-        const schemaFind = await Schema.find();
-        return schemaFind ? res.status(201).json({schema: schemaFind}): res.status(404).json([]);
+        const created = await Training.create({ ...model, createdAt: new Date(), });
+        return res.status(201).json({ ok: true, training: created });
+    } catch (err) {
+        logWithSource(`postOne training err: ${err.message}`);
+        return res.status(500).json({ ok: false, message: err.message });
     }
-    catch(err){
-        logWithSource(`err: ${err}`.red)
-        return res.status(500).json([]);
-    }
-}
+};
+
 
 const putOne = async(req, res) => {
-    console.log("start-update")
-    try{
-        console.log("the אימון in good", req.body);
-        const model = buildStudentData(req.body) 
-        const isFindByName = await Schema.findOne({name: req.params.name});
+    try {
+        const { idOrName } = req.params;
 
-        if(!isFindByName){
-            return res.status(301).json({warning: "לא קיים אימון באותו שם"});
-        }
-        console.log("the מנוי in good", model);
-        await Schema.findOneAndUpdate({name: req.params.name}, {...model, updated: Date.now()})
-        
-        const schemaFind = await Schema.find();
-        return schemaFind ? res.status(200).json({schema:schemaFind}): res.status(404).json([]);
+        // מאתרים את הרשומה הקיימת
+        const findFilter = mongoose.Types.ObjectId.isValid(idOrName)
+        ? { _id: idOrName }
+        : { name: idOrName };
+
+        const current = await Training.findOne(findFilter);
+        if (!current) return res.status(404).json({ ok: false, message: 'לא נמצא' });
+
+        const patch = buildData(req.body);
+
+        current.name = patch.name ?? current.name;
+        current.info = patch.info ?? current.info;
+        current.updatedAt = new Date();
+
+        await current.save();
+        return res.status(200).json({ ok: true, training: current });
+    } catch (err) {
+        logWithSource(`putOne training err: ${err.message}`);
+        return res.status(500).json({ ok: false, message: err.message });
     }
-    catch(err){
-        logWithSource(`err: ${err}`.red)
-        return res.status(500).json([]);
-    }
+
 }
 const deleteOne= async(req, res) => {
-    console.log("start-delete")
-    try{
-        await Schema.findOneAndDelete({name: req.params.name}); 
-        const schemaFind = await Schema.find();
-        return schemaFind ? res.status(200).json({schema: schemaFind}): res.status(404).json([]);
+    try {
+        const { idOrName } = req.params;
+        const hard = String(req.query.hard || '0') === '1';
+
+        const findFilter = mongoose.Types.ObjectId.isValid(idOrName)
+        ? { _id: idOrName }
+        : { name: idOrName };
+
+        const training = await Training.findOne(findFilter);
+        if (!training) return res.status(404).json({ ok: false, message: 'לא נמצא' });
+        
+        await Training.deleteOne({ _id: training._id });
+        return res.status(200).json({ ok: true, removed: true });
+    } catch (err) {
+        logWithSource(`deleteOne training err: ${err.message}`);
+        return res.status(500).json({ ok: false, message: err.message });
     }
-    catch(err){
-        logWithSource(`err: ${err}`.red)
-        return res.status(500).json([]);
-    }
+
 }
 
 module.exports = {getAll, getOne, postOne, putOne, deleteOne,}

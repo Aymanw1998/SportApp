@@ -14,44 +14,55 @@ const xss = require('xss-clean');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const axios = require('axios');
+const {logger} = require('./middleware/logger');
+
 
 const crypto = require("crypto")
 //Lod env vars
 dotenv.config({path: './config/.env'});
 //Craete app
 const app = express();
+app.use(logger);
+
 //Connect to DB
 connectDB();
+
+// VERY TOP, right after app = express()
+const allowedOrigins = ['http://localhost:3000'];
+
+const corsOptions = {
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // Postman/SSR
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+  // optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // preflight
+
 //Middleware to parse JSON requests
 app.use(express.json());
 //Cookie parser when login user the token is saved in the server and send to http client
 app.use(cookieParser());
-
 //Prevent attects
+app.use(helmet({ crossOriginResourcePolicy: false })); // לא לחסום משאבים cross-origin
 app.use(mongoSanitize()); // Sanitize data for privent NoSql injection attack
-app.use(helmet()); // Set security headers
 app.use(xss()); // Prevent XSS attacks
-
-//Enable CORS
-app.use(cors());
-app.all('*', function (req, res, next) {
-  if (!req.get('Origin')) return next();
-  res.set('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE');
-  res.set(
-    'Access-Control-Allow-Headers',
-    'X-Requested-With,Content-Type,authorization'
-  );
-  next();
-});
 
 // Routes
 app.use('/api/lesson', require('./Entities/Lesson/Lesson.route'));
-app.use('/api/user', require('./Entities/User/user.route'))
+app.use('/api/user', require('./Entities/User/user.route'));
 app.use('/api/auth', require('./Entities/User/auth.route'))
 app.use('/api/training', require('./Entities/Training/Training.route'))
 app.use('/api/subs', require('./Entities/Subs/Subs.route'))
 
+
+// **********************************CLOUDINARY_SERVER***************************
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
@@ -118,11 +129,10 @@ app.get('/api/cloudinary-signature', (req, res) => {
   });
 });
 
+// **********************************END - CLOUDINARY_SERVER***************************
 
 //Dev logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+app.use(morgan('dev'));
 // Route middleware
 app.get('/', (req, res) => {console.log("Server is up and running");res.send('Server is up and running'); });
 
@@ -131,17 +141,52 @@ app.get('/', (req, res) => {console.log("Server is up and running");res.send('Se
 //for catch 500-400 errors
 app.use(errorHandler);
 
+
+// **********************************ALERTS POPUP***************************
+
+const { eventsHandler, broadcast } = require('./utils/sse');
+const { errorPublisher } = require('./utils/errorPublisher');
+
+// בריאות
+app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+// ערוץ SSE
+app.get('/api/events', eventsHandler);
+
+// דוגמה לאירוע יזום
+app.get('/api/test-event', (req, res) => {
+  broadcast({ level: 'success', title: 'בדיקה', message: 'אירוע בדיקה מהשרת' });
+  res.json({ ok: true });
+});
+
+// שגיאה יזומה לבדיקה
+app.get('/api/boom', (req, res, next) => {
+  const err = new Error('נפילה לדוגמה');
+  err.status = 500;
+  err.code = 'BOOM_EXAMPLE';
+  next(err);
+});
+
+// ⬅️ שים לפני error handler הראשי
+app.use(errorPublisher);
+
+// **********************************END - ALERTS POPUP***************************
 const httpServer = http.createServer(app)
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV;
-httpServer.listen(
-  PORT,"0.0.0.0",
- console.log(`Server running in ${NODE_ENV} mode on port ${PORT}`.blue.bold)
-);
+httpServer.listen(PORT,"0.0.0.0",console.log(`Server running in ${NODE_ENV} mode on port ${PORT}`.blue.bold));
 
-//Handle unhandled promise rejections
+
+// 1. Unhandled Promise Rejection (async errors)
 process.on('unhandledRejection', (err, promise) => {
- //console.log(`Error: ${err.message}`.red);
-  // Close server & exit process
+  console.error('💥 Unhandled Rejection:', err.message);
+  console.error(err.stack);
   httpServer.close(() => process.exit(1));
+});
+
+// 2. Uncaught Exceptions (sync errors not caught in try/catch)
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err.message);
+  console.error(err.stack);
+  process.exit(1); // Exit immediately
 });

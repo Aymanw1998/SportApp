@@ -2,8 +2,11 @@ const mongoose = require('mongoose');
 
 // Define the Meeting Schema
 const schema = new mongoose.Schema({
-    name: String,
-    info: String,
+    name: {type: String, required: true,},
+    info: {type: String, default: ''},
+
+    createdAt: {type: Date, default: Date.now},
+    updatedAt: {type: Date},
 });
 
 // Create the Meeting model

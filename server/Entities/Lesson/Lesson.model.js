@@ -2,13 +2,14 @@ const mongoose = require('mongoose');
 
 // Define the Meeting Schema
 const schema = new mongoose.Schema({
-    name: String,
+    name: { type: String, required: true },
     date: {
-        day: Number, //0-sun to 6-sat
-        hh: Number, //0-23
+        day: { type: Number, required: true, min: 1, max: 7 }, // 0=Sun..6=Sat
+        hh:  { type: Number, required: true, min: 1, max: 24 }, // 0..23
+        month: { type: Number, required: true, min: 1, max: 12 }, // 0..23 
+        year: {type: Number, required: true},
     },
-    max_trainees: Number, // number maximum for clients in lesson
-    num_in_list: Number, // number clients in lesson
+    max_trainees: { type: Number, default: 20, min: 0 },
     trainer: {
         type: mongoose.Schema.Types.ObjectId, // trainer
         ref: 'Users',
@@ -17,9 +18,9 @@ const schema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, //trainee
         ref: 'Users',
     }],
-    created: Date,
-    updated: Date,
-});
+    createdAt: {type: Date, default: Date.now},
+    updatedAt: {type: Date},
+},{timeseries: false});
 
 // Create the Meeting model
 const Lesson = mongoose.model('Lessons', schema);
