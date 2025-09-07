@@ -56,7 +56,7 @@ app.use(xss()); // Prevent XSS attacks
 
 // Routes
 app.use('/api/lesson', require('./Entities/Lesson/Lesson.route'));
-app.use('/api/user', require('./Entities/User/user.route'));
+app.use('/api/user', require('./Entities/User/User.route'));
 app.use('/api/auth', require('./Entities/User/auth.route'))
 app.use('/api/training', require('./Entities/Training/Training.route'))
 app.use('/api/subs', require('./Entities/Subs/Subs.route'))
