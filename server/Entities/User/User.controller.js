@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const  { User } = require('./user.model');
+const  { User } = require('./User.model');
 const Subs = require('../Subs/Subs.model'); // אם צריך לאמת קיום מנוי
                                      // מודל משתמש (mongoose)
 const {

@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose");
-const {User, UserNoActive} = require("../Entities/User/user.model");
+const {User, UserNoActive} = require("../Entities/User/User.model");
 const { removeSubForUser } = require("../Entities/User/User.controller");
 
 const stripTimestamps = (doc) => {
