@@ -228,7 +228,7 @@ const currentMonthInfo = useMemo(() => {
   const loadData = async () => {
   const resL = await getAllLesson();
   if(!resL.ok) {
-    setTableData(table);
+    setTableData(tableData);
     return toast.error("שגיאה בטעינת השיעורים");
   }
   const lessons = resL.lessons;

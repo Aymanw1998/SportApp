@@ -61,6 +61,26 @@ app.use('/api/auth', require('./Entities/User/auth.route'))
 app.use('/api/training', require('./Entities/Training/Training.route'))
 app.use('/api/subs', require('./Entities/Subs/Subs.route'))
 
+// **********************************AUTO_PROCCESS ***************************
+const cron = require("node-cron");
+const { runDailyJobs } = require("./utils/daily");
+
+// ירוץ כל יום בחצות לפי שעון ישראל
+cron.schedule("0 0 1 * *", async () => {
+  try {
+    console.time("[daily]");
+    await runDailyJobs();
+  } catch (err) {
+    console.error("[daily] error:", err);
+  } finally {
+    console.timeEnd("[daily]");
+  }
+}, { timezone: "Asia/Jerusalem" });
+
+// בזמן פיתוח אפשר לבדוק כל דקה:
+// cron.schedule("* * * * *", runDailyJobs, { timezone: "Asia/Jerusalem" });
+// **********************************END - AUTO_PROCCESS ***************************
+
 
 // **********************************CLOUDINARY_SERVER***************************
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;

@@ -17,7 +17,7 @@ const SelectSubForTrainee = ({ selectedSub, setSelectedSub, wallet = 0, publicMo
         if (!res.ok) throw new Error(res.message);
         const subs = res.subs;
         const list = Array.isArray(subs) ? subs : [];
-        const affordable = list.filter((item) => Number(item.price) <= Number(wallet));
+        const affordable = list//.filter((item) => Number(item.price) <= Number(wallet));
         if (alive) setSubs(affordable);
       } catch (e) {
         console.error("שגיאה בטעינת מנויים", e);
@@ -35,7 +35,7 @@ const SelectSubForTrainee = ({ selectedSub, setSelectedSub, wallet = 0, publicMo
 
   if (loading) return <div className="subs-selection-container">טוען מנויים…</div>;
   if (err) return <div className="subs-selection-container error">{err}</div>;
-  if (!subs.length) return <div className="subs-selection-container empty">אין מנויים זמינים לפי היתרה ({wallet} ₪)</div>;
+  // if (!subs.length) return <div className="subs-selection-container empty">אין מנויים זמינים לפי היתרה ({wallet} ₪)</div>;
 
   return (
     <div className="subs-selection-container">

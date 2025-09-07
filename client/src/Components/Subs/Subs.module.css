@@ -103,18 +103,19 @@
     padding: 10px;
   }
 
-  .subTable td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
+
+  .subTable td:first-child {
+    padding-top: .5em;
+  }
+
+  .subTable td:last-child {
+    padding-bottom: .5em;
   }
 
   .subTable td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 10px;
-    top: 10px;
-    font-weight: bold;
-    color: #333;
+      content: attr(data-label);
+      font-weight: bold;
+      width: 6.5em;
+      display: inline-block;
   }
 }

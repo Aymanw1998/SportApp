@@ -23,8 +23,8 @@ const requireObjectId = (param) => (req, res, next) => {
 router.use(protect);
 
 // ספציפיים – לפני /:id
-router.post('/addSub/:subId', requireObjectId('subId'), addSubForUser);
-router.post('/removeSub/', removeSubForUser);
+router.post('/addSub/:userId/:subId', addSubForUser);
+router.post('/removeSub/:userId', removeSubForUser);
 router.post('/countWithoutSubsForUser', countWithoutSubsForUser);
 
 // אדמין

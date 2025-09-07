@@ -40,7 +40,7 @@ export default function LoginPage() {
             console.log("me", me?.role === 'מתאמן', !me?.subs?.id, me.wallet > 0)
             // כללי מנוי למתאמן
             if (me?.role === 'מתאמן' && !me?.subs?.id) {
-                if ((me?.wallet) > 0) {
+                if(true){
                     toast.warn('אין לך מנוי כדי להשתמש במערכת, נא בחר מנוי אפשרי');
                     navigate(`/selectSubfor/${encodeURIComponent(me.tz)}`);
                     return;

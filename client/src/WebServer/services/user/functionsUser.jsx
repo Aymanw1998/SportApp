@@ -80,10 +80,10 @@ export const deleteUser = async (tz, {confirm = true} = {}) => {
 };
 
 /** הוספת מנוי למשתמש המחובר (על פי ה־middleware שלך) */
-export const addSub = async (subId) => {
+export const addSub = async (userId, subId, start, end) => {
 
   try {
-    const {status, data} = await api.post(`/user/addSub/${subId}`);
+    const {status, data} = await api.post(`/user/addSub/${userId}/${subId}`, {start, end});
     if (![200,201].includes(status) || !data?.ok) throw new Error('משתמש לא נוסף לו מנוי');
     return { ok: true, user: extractUser(data.data) };
   } catch (err) {
@@ -99,7 +99,8 @@ export const removeSub = async (_userId) => {
   try {
     const {status, data} = await api.post(`/user/removeSub/${_userId}`);
     if (![200,201].includes(status) || !data?.ok) throw new Error('משתמש לא נמחק לו המנוי');
-    return { ok: true, user: extractUser(res.data) };
+    console.log("removeSub", status, data);
+    return { ok: true, user: extractUser(data) };
   } catch (err) {
     const msg = err?.response?.data?.message || err.message || "שגיאה בהסרת מנוי";
     return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};

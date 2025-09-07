@@ -21,14 +21,12 @@ const UserSchema = new mongoose.Schema(
 
     subs: {
       id: {type: mongoose.Schema.Types.ObjectId, ref: 'Subs', default: null,},
-      start: {
-        day: { type: Number, default: 0 },
-        month: { type: Number, default: 0 },
-        year: { type: Number, default: 0 },
-      },
+      start: {type: Date},
+      end: {type: Date},
     },
 
     active: { type: Boolean, default: true },
+    countNoActive: {type: Number, default: 0},
     refreshHash: {
       type: String,
       default: null,
@@ -78,4 +76,5 @@ UserSchema.pre(['findOneAndUpdate', 'updateOne'], async function (next) {
 
 
 const User = mongoose.model('Users', UserSchema);
-module.exports = User;
+const UserNoActive = mongoose.model('UsersNoActive', UserSchema);
+module.exports = {User, UserNoActive};

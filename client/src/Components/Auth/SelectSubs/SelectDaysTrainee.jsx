@@ -4,6 +4,7 @@ import "./SelectSub.css";
 import { toast } from "../../../ALERT/SystemToasts";
 
 const SelectDaysForTrainee = ({ selectedSubs,selected = [], setSelected}) => {
+  const [tableData, setTableData] = useState([]);
   const [lessonsThisMonth, setLessonsThisMonth] = useState([]);
   useEffect(()=>console.log("lessonsThisMonth", lessonsThisMonth),[lessonsThisMonth]);
   const [lessonsNextMonth, setLessonsNextMonth] = useState([]);
@@ -27,58 +28,23 @@ const SelectDaysForTrainee = ({ selectedSubs,selected = [], setSelected}) => {
   const getHourSlot = (hh) => `${String(hh).padStart(2, '0')}:45 - ${String(hh).padStart(2, '0')}:00`;
 
   const loadData = async () => {
-      const res = await getAllLesson();
-      console.log("res loadData", res)
-      if(!res.ok)
-        return toast.warn(res.message);
-      const lessons = res.lessons;
-      if (lessons) {
-        let listThisMonth = [];
-        let listNextMonth = [];
+        const resL = await getAllLesson();
+        if(!resL.ok) {
+          setTableData(tableData);
+          return toast.error("שגיאה בטעינת השיעורים");
+        }
+        const lessons = resL.lessons;
+        let table = [];
         for (const lesson of lessons) {
-          const { day, hh } = lesson.date;
-          const hourKey = `${String(hh).padStart(2, '0')}:00`;
-          const rowIndex = hours.findIndex((h) => h.includes(hourKey));
-          console.log("day", day, "hh", hh, "hourKey", hourKey, "rowIndex", rowIndex);
-          if (rowIndex !== -1 && day >= 0 && day < 5) {
-            const thisMonth = new Date();
-            const lastMonth = new Date(); lastMonth.setMonth(thisMonth.getMonth() - 1);
-            const lessonMonth = new Date(lesson?.created);
-              console.log("thisMonth", thisMonth); console.log("lastMonth", lastMonth); console.log( "lessonMonth", lastMonth);
-  
-            let isLastMonth =
-              lessonMonth.getMonth() === lastMonth.getMonth() &&
-              lessonMonth.getFullYear() === lastMonth.getFullYear();
-  
-            let isThisMonth =
-              lessonMonth.getMonth() === thisMonth.getMonth() &&
-              lessonMonth.getFullYear() === thisMonth.getFullYear();
-            console.log("isLastMonth", isLastMonth, "isThisMonth", isThisMonth)
-            if (isLastMonth) {
-              listThisMonth.push(lesson);
-            }
-            else if(isThisMonth){
-              listNextMonth.push(lesson);
-            } else {
-                    let list = []; 
-                    for(let i =0; i < days.length; i++){
-                      for(let j = 0; j < selectedSubs.times_week; j++){
-                        list.push({
-                          _id: `${i}${j}`,
-                          name: `test${i}${j}`,
-                          date: {day: i, hh: 10+j},
-                          list_trainees:[]
-                        })
-                      }
-                    }
-                  setLessonsThisMonth(list);
-                  return;
+          const { day, hh, month, year } = lesson.date;          // month = 1..12
+          const today = new Date();
+          if (day >= 1 && day <= 5) {
+            if (month === today.getMonth() + 2 && year === today.getFullYear()) {
+              table.push(lesson);
             }
           }
         }
-        setLessonsThisMonth(listThisMonth);
-        setLessonsNextMonth(listNextMonth);
-      }
+        setTableData(table);
     };
   
   useEffect(() => { loadData(); }, [selectedSubs]);
@@ -103,9 +69,9 @@ const SelectDaysForTrainee = ({ selectedSubs,selected = [], setSelected}) => {
   return (
     <div>
       <div>
-        {lessonsThisMonth.length > 0 && <h3>שיעורים לחודש הזה</h3>}
+        {tableData.length > 0 && <h3>שיעורים לחודש הזה</h3>}
         <div className="subs-selection-container">
-          {lessonsThisMonth.length > 0 && lessonsThisMonth.map((lesson) => {
+          {tableData.map((lesson) => {
             
             const isSelected = selected.filter(l => l._id === lesson._id).length > 0;            
             return (

@@ -207,6 +207,7 @@ const addToList = async(req, res) => {
         if (lesson.list_trainees.length + toAdd.length > lesson.max_trainees) {
         return res.status(400).json({ ok: false, code: 'OVER_CAPACITY', message: 'אין מקום פנוי' });
         }
+        
 
         lesson.list_trainees.push(...toAdd);
         lesson.updated = new Date();

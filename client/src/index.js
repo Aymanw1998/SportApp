@@ -24,7 +24,7 @@ function DevToastPing() {
   const { push } = useToast();
   useEffect(() => {
     // console.log("🎉 ToastProvider פעיל (בדיקת עשן)");
-    push({ variant: "success", description: "🎉 ToastProvider פעיל (בדיקת עשן)" });
+    // push({ variant: "success", description: "🎉 ToastProvider פעיל (בדיקת עשן)" });
     // השאר גם לקונסול — לעבודה דרך ה-DOM
     window.toast = toast;
   }, [push]);

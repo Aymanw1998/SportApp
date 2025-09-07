@@ -7,7 +7,7 @@ const { faker } = require('@faker-js/faker/locale/he');
 const { v4: uuidv4 } = require('uuid');
 
 // ✅ ייבוא מודלים קיימים
-const User = require('./User/User.model');
+const  { User } = require('./User/User.model');
 const Lesson = require('./Lesson/Lesson.model');
 
 async function seed() {

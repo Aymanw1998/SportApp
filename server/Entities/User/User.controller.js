@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('./user.model');
+const  { User } = require('./user.model');
 const Subs = require('../Subs/Subs.model'); // אם צריך לאמת קיום מנוי
                                      // מודל משתמש (mongoose)
 const {
@@ -332,23 +332,23 @@ const getme = async (req, res) => {
 
 const addSubForUser = async (req, res) => {
   try {
+    const {userId, subId} = req.params;
+    const {start, end} = req.body;
     //Sub exist
-    const subId = String(req.params.subId).trim();
     const sub = await Subs.findById(subId);
     if(!sub) return res.status(404).json({ok: false, message: 'Subscription not found'});
 
     //user exist
-    const user = await User.findOne({tz: req.user.tz});
+
+    let user = await User.findById(userId);
+    if(!user) user = await User.findOne({tz: userId});
     if(!user) return res.status(404).json({ok: false, message: 'User not found'})
     
     const now = new Date();
     user.subs = {
       id: sub._id,
-      start: {
-        day: now.getDate(), 
-        month: now.getMonth() + 1, 
-        year: now. getFullYear(),
-      }
+      start: new Date(start),
+      end: new Date(end),
     }
     user.active = 0;
     user.updatedAt = now;
@@ -360,13 +360,18 @@ const addSubForUser = async (req, res) => {
 
 const removeSubForUser = async (req, res) => {
   try {
-    //user exist
-    const user = await User.findOne({tz: req.user.tz});
+    const {userId} = req.params;
+    let user = await User.findById(userId);
+    if(!user) user = await User.findOne({tz: userId});
     if(!user) return res.status(404).json({ok: false, message: 'User not found'})
     
-    user.subs = { id: undefined };
+    console.log(user);
+    user.subs.id = null;
+    user.subs.start = null;
+    user.subs.end= null;
     user.active = 0;
     user.updatedAt = new Date();
+    console.log(user);
     await user.save();
 
     return res.status(200).json({ ok: true, user: sanitize(user) });

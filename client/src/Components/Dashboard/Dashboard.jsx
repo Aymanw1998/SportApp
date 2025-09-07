@@ -149,6 +149,8 @@ export default function Dashboard() {
   }
   // טוען שיעורים + משתמשים
   useEffect(() => {
+    if(localStorage.getItem("role") === "מנהל") return navigate("/users");
+    else return navigate("/lessons");
     loadData();
     loadGetMe();
   }, []);

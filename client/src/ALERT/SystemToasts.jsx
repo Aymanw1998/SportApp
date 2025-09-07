@@ -205,7 +205,7 @@ export function SystemEventSubscriber({ url = "/api/events" }) {
         push({ description: ev.data || "אירוע מערכת", variant: "info" });
       }
     };
-    es.onerror = () => { push({ description: "⚠️ חיבור אירועי-שרת נפל. מנסה להתחבר מחדש…", variant: "warning" }); };
+    // es.onerror = () => { push({ description: "⚠️ חיבור אירועי-שרת נפל. מנסה להתחבר מחדש…", variant: "warning" }); };
     return () => es.close();
   }, [url, push]);
   return null;
@@ -246,7 +246,8 @@ export function StatusBadge({ className = "" }) {
   }, []);
 
   return (
-    <div className={`status-badge ${className}`}>
+    <>
+    {false && <div className={`status-badge ${className}`}>
       <div className="status-box">
         <div className="status-seg"><span className={`dot ${netState}`} /><span className="label">שרת</span></div>
         <div className="split" />
@@ -255,7 +256,8 @@ export function StatusBadge({ className = "" }) {
           <span className="label">טוקן {minsLeft !== null ? minsLeft > 60 ? `~${(minsLeft/60).toFixed(0)} שע׳` : `~${minsLeft} ד׳` : "לא נמצא"}</span>
         </div>
       </div>
-    </div>
+    </div>}
+    </>
   );
 }
 

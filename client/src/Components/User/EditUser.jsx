@@ -186,7 +186,7 @@ export default function EditUser() {
       }
       else if(['gender', 'role'].includes(name) && isNew){
         const tag = document.getElementsByName(name)[0];
-        if (isNew && name === 'gender' && !['זכר', 'נקיבה'].includes(value)) {
+        if (isNew && name === 'gender' && !['זכר', 'נקבה'].includes(value)) {
           tag?.style.setProperty('border', ''); // או ישירות סטייל
           return "בחר מין";
         } else if (isNew && name === 'role' && !['מנהל', 'מאמן', 'מתאמן'].includes(value)) {
@@ -268,6 +268,7 @@ export default function EditUser() {
       if (updated) {
         setUser((prev) => ({ ...prev, subs: { id: null, start: { day: 0, month: 0, year: 0 } } }));
         setSub(null);
+        toast.success("✅ המנוי נמחק");      
       }
     } catch (e) {
       console.error(e);

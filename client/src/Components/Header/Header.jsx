@@ -132,9 +132,9 @@ export default function Header() {
               <span />
             </button>
           )}
-          <button onClick={() => {console.log("👋 בדיקה: זה טוסט שאני יצרתי!");
+          {/* <button onClick={() => {console.log("👋 בדיקה: זה טוסט שאני יצרתי!");
             push({ variant: "info", description: "👋 בדיקה: זה טוסט שאני יצרתי!" });
-            }}>טוסט בדיקה</button>
+            }}>טוסט בדיקה</button> */}
           {/* פרטי משתמש (נעלמים במובייל ונכנסים לתפריט) */}
           {user && isMobile && (
             <div className={styles.userBadge}>

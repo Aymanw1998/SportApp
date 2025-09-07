@@ -162,7 +162,7 @@ const ViewAllSubs = () => {
       {!err && loading && <div style={{ marginTop: 12 }}>טוען מנויים…</div>}
 
       {!loading && !err && (
-        <table className={`table ${styles.subsTable}`} style={{ marginTop: 12 }}>
+        <table className={`table ${styles.subTable}`} style={{ marginTop: 12 }}>
           <thead>
             <tr>
               <th>שם</th>
@@ -181,16 +181,7 @@ const ViewAllSubs = () => {
                   <td data-label="פעמים בשבוע">{sub.times_week}</td>
                   <td data-label="מחיר">{fmtILS(sub.price)}</td>
                   <td data-label="פעולות">
-                    <div className={styles.actionsButton} style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => navigate(`/subs/${sub._id}`)}>✏️</button>
-                      <button
-                        onClick={() => onSoftDelete(sub._id, sub.name)}
-                        style={{ background: "#ef4444", color: "#fff" }}
-                        title="מחיקה רכה (soft delete)"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                    <button style={{ backgroundColor: 'green', padding: '0.5rem 1rem', borderRadius: '0.5rem', color: 'white', alignItems: "center" }} onClick={() => navigate(`/subs/${sub._id}`)}>לחץ לפרטים</button>
                   </td>
                 </tr>
               ))

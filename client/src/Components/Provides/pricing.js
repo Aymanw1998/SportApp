@@ -40,6 +40,7 @@ export function calcProratedQuote({
   const start = (startDate instanceof Date) ? startDate : new Date(startDate);
   const periodEnd = endOfLastMonth(start, months);       // סוף החודש האחרון
   const fullStart = firstOfMonth(start);                 // תחילת החודש הראשון
+  console.log({start: fullStart}, {end:periodEnd})
   const daysSet = new Set(daysOfWeek); // [0..6]
   const meetingsFull   = countMeetingsBetween(fullStart,  periodEnd, daysSet);
   const meetingsActual = countMeetingsBetween(start,      periodEnd, daysSet);
@@ -65,6 +66,6 @@ export function calcProratedQuote({
     fraction,
     meetingsFull,
     meetingsActual,
-    period: { start, end: periodEnd }
+    period: { start: fullStart, end: periodEnd }
   };
 }

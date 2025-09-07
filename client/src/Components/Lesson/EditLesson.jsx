@@ -324,6 +324,9 @@ const EditLesson = () => {
                 מחיקת שיעור
               </button>
             )}
+            <button type="button" style={{ background: "#6b7280" }} onClick={() => navigate(-1)}>
+          חזרה לרשימה
+        </button>
           </div>
         </>
       )}
