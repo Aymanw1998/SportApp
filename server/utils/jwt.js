@@ -16,10 +16,9 @@ exports.setRefreshCookie = (res, token) => {
   const isProd = process.env.NODE_ENV === 'production';
   res.cookie('refresh', token, {
     httpOnly: true,
-    secure: isProd,           // true ב-HTTPS
-    sameSite: 'lax',
-    path: '/',                // כל ה-app
-    maxAge: REFRESH_TOKEN_TTL_SEC * 1000,
+    secure: true,           // true ב-HTTPS
+    sameSite: 'None',   // כדי לעבור cross-site
+    domain: 'fitness360-suji.onrender.com', // לא חובה, אפשר להשאיר בלי
   });
 };
 

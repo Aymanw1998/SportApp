@@ -28,22 +28,31 @@ app.use(logger);
 connectDB();
 
 // VERY TOP, right after app = express()
-const allowedOrigins = ['http://localhost:3000'];
+// מומלץ דרך ENV כדי שלא תצטרך לקמפל מחדש
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : [
+      'http://localhost:3000',
+      'https://fitness-360.onrender.com', // הקליינט בפרודקשן
+      // הוסף כאן דומיינים נוספים אם יש
+    ];
+
+const allowedOrigins = new Set(ALLOWED_ORIGINS);
 
 const corsOptions = {
   origin(origin, cb) {
-    if (!origin) return cb(null, true); // Postman/SSR
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
+    if (!origin) return cb(null, true);               // Postman/SSR
+    if (allowedOrigins.has(origin)) return cb(null, true);
+    return cb(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
-  // optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // preflight
+app.set('trust proxy', 1); // חשוב ברנדר בשביל cookies Secure
 
 //Middleware to parse JSON requests
 app.use(express.json());
