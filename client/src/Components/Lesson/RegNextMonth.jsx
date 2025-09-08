@@ -184,7 +184,7 @@ export default function RegNextMonth() {
               ...l,
               list_trainees: inList
                 ? l.list_trainees.filter((id) => id !== me._id)
-                : [...(l.list_trainees.length > 0 && l.list_trainees[0] != null ? l.list_trainees || []), me._id],
+                : [...(l.list_trainees.length > 0 && l.list_trainees[0] != null ? l.list_trainees : []), me._id],
             }
           : l
       )
