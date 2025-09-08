@@ -152,9 +152,13 @@ const EditLesson = () => {
       
       if (!resL) return;
       if (resL.ok) {
+        alert(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
+        console.log(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
         toast.success(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
         navigate(-1);
       } else {
+        alert(resL.message || '❌ שגיאה בשמירה');
+        console.warn(resL.message || '❌ שגיאה בשמירה');
         toast.warn(resL.message || '❌ שגיאה בשמירה');
       }
     } catch (e) {
