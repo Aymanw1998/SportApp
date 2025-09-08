@@ -193,7 +193,7 @@ export default function RegNextMonth() {
   const saveAll = async () => {
     try {
       // await Promise.all(
-      //   lessons.map(async (l) => await updateLesson(l._id, l)) // שמירה “ברוטאלית” לכל השיעורים
+      //   lessons.map(async (l) => await updateLesson(l._id, l, {confirm : false})) // שמירה “ברוטאלית” לכל השיעורים
       // );
       for(const l of lessons){
         await updateLesson(l._id, l).then((d) => console.log("update lesson success")).catch((err) => console.error(err))
