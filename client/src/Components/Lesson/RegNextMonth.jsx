@@ -99,7 +99,6 @@ export default function RegNextMonth() {
             const u = resR.user;
             return [id, u ? `${u.firstname || ''} ${u.lastname || ''}`.trim() : 'לא ידוע'];
           } catch (err){
-            console.error(err)
             return [id, 'לא ידוע'];
           }
         })
