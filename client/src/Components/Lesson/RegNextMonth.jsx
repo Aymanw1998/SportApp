@@ -196,7 +196,7 @@ export default function RegNextMonth() {
       //   lessons.map(async (l) => await updateLesson(l._id, l, {confirm : false})) // שמירה “ברוטאלית” לכל השיעורים
       // );
       for(const l of lessons){
-        await updateLesson(l._id, l).then((d) => console.log("update lesson success")).catch((err) => console.error(err))
+        await updateLesson(l._id, l, {confirm : false}).then((d) => console.log("update lesson success")).catch((err) => console.error(err))
       }
       toast.success('✅ השינויים נשמרו');
       navigate(-1);
