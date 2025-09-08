@@ -104,6 +104,8 @@ function ToastItem({ t, onClose }) {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
+    console.log('t.sticky', t.sticky);
+    console.log('hover', hover);
     if (t.sticky || hover) return;
     timeoutRef.current = window.setTimeout(onClose, t.duration || 5000);
     return () => timeoutRef.current && window.clearTimeout(timeoutRef.current);
@@ -170,8 +172,11 @@ export function SystemStatusWatcher({ options }) {
   useEffect(() => {
     const checkExp = () => {
       const tok = getToken();
+      console.log('tok', token);
       if (!tok) return;
       const exp = getJwtExp(tok);
+      console.log('exp', exp);
+
       if (!exp) return;
       const now = Math.floor(Date.now() / 1000);
       const left = exp - now;
@@ -195,11 +200,13 @@ export function SystemEventSubscriber({ url = "/api/events" }) {
   const { push } = useToast();
   useEffect(() => {
     const es = new EventSource(url, { withCredentials: true });
+    console.log("es", es);
     es.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data || "{}");
         const level = data.level || "info";
         const variant = level === "error" ? "destructive" : level === "warning" ? "warning" : level === "success" ? "success" : "info";
+        console.log('onmessage', { title: data.title, description: data.message, variant });
         push({ title: data.title, description: data.message, variant });
       } catch {
         push({ description: ev.data || "אירוע מערכת", variant: "info" });
