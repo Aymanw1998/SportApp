@@ -172,7 +172,7 @@ export function SystemStatusWatcher({ options }) {
   useEffect(() => {
     const checkExp = () => {
       const tok = getToken();
-      console.log('tok', token);
+      console.log('tok', tok);
       if (!tok) return;
       const exp = getJwtExp(tok);
       console.log('exp', exp);
