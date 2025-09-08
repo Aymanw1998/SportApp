@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllLesson, updateLesson } from '../../WebServer/services/lesson/functionsLesson';
+import { getAllLesson, updateLesson, addToList, removeFromList } from '../../WebServer/services/lesson/functionsLesson';
 import { getUserById } from '../../WebServer/services/user/functionsUser';
 import { getMe } from '../../WebServer/services/auth/fuctionsAuth';
 import { getOne as getSubById } from '../../WebServer/services/subs/functionsSubs';
@@ -194,7 +194,7 @@ export default function RegNextMonth() {
   const saveAll = async () => {
     try {
       await Promise.all(
-        lessons.map((l) => updateLesson(l._id, l)) // שמירה “ברוטאלית” לכל השיעורים
+        lessons.map(async (l) => await updateLesson(l._id, l)).catch(err){} // שמירה “ברוטאלית” לכל השיעורים
       );
       toast.success('✅ השינויים נשמרו');
       navigate(-1);
