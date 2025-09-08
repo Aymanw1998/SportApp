@@ -184,7 +184,7 @@ export default function RegNextMonth() {
               ...l,
               list_trainees: inList
                 ? l.list_trainees.filter((id) => id !== me._id)
-                : [...(l.list_trainees || []), me._id],
+                : [...(l.list_trainees.length > 0 && l.list_trainees[0] != null ? l.list_trainees || []), me._id],
             }
           : l
       )
@@ -193,9 +193,12 @@ export default function RegNextMonth() {
 
   const saveAll = async () => {
     try {
-      await Promise.all(
-        lessons.map(async (l) => await updateLesson(l._id, l)) // שמירה “ברוטאלית” לכל השיעורים
-      );
+      // await Promise.all(
+      //   lessons.map(async (l) => await updateLesson(l._id, l)) // שמירה “ברוטאלית” לכל השיעורים
+      // );
+      for(const l of lessons){
+        await updateLesson(l._id, l).then((d) => console.log("update lesson success")).catch((err) => console.error(err))
+      }
       toast.success('✅ השינויים נשמרו');
       navigate(-1);
     } catch (e) {
