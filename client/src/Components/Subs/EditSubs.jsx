@@ -124,7 +124,8 @@ const EditSubs = () => {
   };
 
   const handleSubmit = async (e) => {
-    let b = true;
+    let b = await validate();
+    if (b) { toast.warn(b); return; }
     const ff = ['name', 'months', 'times_week', 'price'];
     for(const nameTag in ff){
       const tag = document.getElementsByName(ff[nameTag])[0];
@@ -135,7 +136,7 @@ const EditSubs = () => {
         b = false;
       }
     }
-    if(!b) return toast.info("בדיקת שדות");
+    if(!b) return toast.warn("בדיקת שדות");
     e.preventDefault();
     try {
       setSaving(true);
@@ -230,7 +231,7 @@ const EditSubs = () => {
       <label style={{color: "red"}}>{error.price}</label>
 
       <div className={styles.buttonRow} style={{ gap: 8, flexWrap: "wrap" }}>
-        <button type="submit" onClick={handleSubmit} disabled={saving}>
+        <button type="submit" onClick={handleSubmit}>
           {saving ? "שומר…" : (isEdit ? "שמור שינויים" : "צור מנוי")}
         </button>
 

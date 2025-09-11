@@ -1,8 +1,7 @@
-// SystemToasts.jsx
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import "./SystemToasts.css";
+import styles from "./SystemToasts.module.css";
 import api from "../WebServer/services/api";
 
 // ---- Global server health signal ----
@@ -50,7 +49,6 @@ export function ToastProvider({ children, rtl = true, baseZIndex = 50 }) {
   }, []);
   const clear = useCallback(() => setToasts([]), []);
 
-  // ✅ push אמיתי שמוסיף לטוסטים
   const push = useCallback((t) => {
     const id = t.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const withDefaults = {
@@ -65,9 +63,12 @@ export function ToastProvider({ children, rtl = true, baseZIndex = 50 }) {
     return id;
   }, []);
 
-  // ✅ חבר את ה־API הגלובלי ונקז הודעות שנשלחו לפני שה־Provider עלה
+  // חבר את ה־API הגלובלי ונקז תור
   useEffect(() => {
-    toast._push = push;
+    toast._push = (t) => {
+      console.log("[SystemToasts] push", t);
+      return push(t);
+    };
     if (_queue.length) for (const t of _queue.splice(0)) push(t);
   }, [push]);
 
@@ -81,12 +82,12 @@ export function ToastProvider({ children, rtl = true, baseZIndex = 50 }) {
   );
 }
 
-// ---------- Viewport (פורטל ל-body כדי לעקוף z-index/transform של הורים) ----------
+// ---------- Viewport ----------
 function ToastViewport({ baseZIndex = 50 }) {
   const { toasts, dismiss } = useToast();
   const view = (
-    <div className="toast-viewport" style={{ zIndex: baseZIndex }}>
-      <div className="toast-stack">
+    <div className={styles.toastViewport} style={{ zIndex: baseZIndex }}>
+      <div className={styles.toastStack}>
         <AnimatePresence>
           {toasts.map((t) => (
             <ToastItem key={t.id} t={t} onClose={() => dismiss(t.id)} />
@@ -104,14 +105,13 @@ function ToastItem({ t, onClose }) {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    console.log('t.sticky', t.sticky);
-    console.log('hover', hover);
     if (t.sticky || hover) return;
     timeoutRef.current = window.setTimeout(onClose, t.duration || 5000);
     return () => timeoutRef.current && window.clearTimeout(timeoutRef.current);
   }, [hover, t.duration, t.sticky, onClose]);
 
-  const variantClass = `toast ${t.variant || "info"}`;
+  // ⬅⬅⬅ התיקון הקריטי: שימוש ב-classes ממודלים (כולל הווריאנט)
+  const variantClass = `${styles.toast} ${styles[t.variant || "info"]}`;
 
   return (
     <motion.div
@@ -125,12 +125,12 @@ function ToastItem({ t, onClose }) {
       role="status"
       aria-live="polite"
     >
-      <div className="toast-row">
-        <div className="toast-body">
-          {t.title && <div className="toast-title">{t.title}</div>}
-          {t.description && <div className="toast-desc">{t.description}</div>}
+      <div className={styles.toastRow}>
+        <div className={styles.toastBody}>
+          {t.title && <div className={styles.toastTitle}>{t.title}</div>}
+          {t.description && <div className={styles.toastDesc}>{t.description}</div>}
         </div>
-        <button onClick={onClose} aria-label="סגירה" className="toast-close">×</button>
+        <button onClick={onClose} aria-label="סגירה" className={styles.toastClose}>×</button>
       </div>
     </motion.div>
   );
@@ -149,7 +149,7 @@ export function SystemStatusWatcher({ options }) {
     let fails = 0;
     const check = async () => {
       try {
-        const r =  await api.get(healthUrl);
+        const r = await api.get(healthUrl);
         if (!r.data.ok) throw new Error(String(r.status));
         emitHealth(true);
         if (mounted && fails > 0) {
@@ -172,11 +172,8 @@ export function SystemStatusWatcher({ options }) {
   useEffect(() => {
     const checkExp = () => {
       const tok = getToken();
-      console.log('tok', tok);
       if (!tok) return;
       const exp = getJwtExp(tok);
-      console.log('exp', exp);
-
       if (!exp) return;
       const now = Math.floor(Date.now() / 1000);
       const left = exp - now;
@@ -200,25 +197,22 @@ export function SystemEventSubscriber({ url = "/api/events" }) {
   const { push } = useToast();
   useEffect(() => {
     const es = new EventSource(url, { withCredentials: true });
-    console.log("es", es);
     es.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data || "{}");
         const level = data.level || "info";
         const variant = level === "error" ? "destructive" : level === "warning" ? "warning" : level === "success" ? "success" : "info";
-        console.log('onmessage', { title: data.title, description: data.message, variant });
         push({ title: data.title, description: data.message, variant });
       } catch {
         push({ description: ev.data || "אירוע מערכת", variant: "info" });
       }
     };
-    // es.onerror = () => { push({ description: "⚠️ חיבור אירועי-שרת נפל. מנסה להתחבר מחדש…", variant: "warning" }); };
     return () => es.close();
   }, [url, push]);
   return null;
 }
 
-// ---------- Status Badge ----------
+// ---------- Status Badge (לא חובה) ----------
 export function StatusBadge({ className = "" }) {
   const serverOk = useServerHealth();
   const [minsLeft, setMinsLeft] = useState(null);
@@ -252,15 +246,21 @@ export function StatusBadge({ className = "" }) {
     return () => clearInterval(id);
   }, []);
 
+  // כבוי כברירת מחדל — הפעל ע"י החלפת false ל-true
   return (
     <>
-    {false && <div className={`status-badge ${className}`}>
-      <div className="status-box">
-        <div className="status-seg"><span className={`dot ${netState}`} /><span className="label">שרת</span></div>
-        <div className="split" />
-        <div className="status-seg">
-          <span className={`dot ${tokenState}`} />
-          <span className="label">טוקן {minsLeft !== null ? minsLeft > 60 ? `~${(minsLeft/60).toFixed(0)} שע׳` : `~${minsLeft} ד׳` : "לא נמצא"}</span>
+    {false && <div className={`${styles.statusBadge} ${className}`}>
+      <div className={styles.statusBox}>
+        <div className={styles.statusSeg}>
+          <span className={`${styles.dot} ${styles[netState || "warn"]}`} />
+          <span className={styles.label}>שרת</span>
+        </div>
+        <div className={styles.split} />
+        <div className={styles.statusSeg}>
+          <span className={`${styles.dot} ${styles[tokenState]}`} />
+          <span className={styles.label}>
+            טוקן {minsLeft !== null ? (minsLeft > 60 ? `~${(minsLeft/60).toFixed(0)} שע׳` : `~${minsLeft} ד׳`) : "לא נמצא"}
+          </span>
         </div>
       </div>
     </div>}

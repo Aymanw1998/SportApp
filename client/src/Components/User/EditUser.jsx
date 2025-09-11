@@ -203,9 +203,9 @@ export default function EditUser() {
   };
 
   const handleSave = async () => {
-    
-    const msg = await validateBeforeSave();
-    if (msg) { toast.warn(msg); return; }
+    console.log("handleSave");
+    const b = await validateBeforeSave();
+    if (b) { toast.warn(b); return; }
 
     try {
       setSaving(true);
@@ -409,7 +409,7 @@ export default function EditUser() {
       </div>
 
       <div className={styles.buttonRow}>
-        <button type="button" onClick={handleSave} disabled={!canSave || saving}>
+        <button type="button" onClick={handleSave}>
           {saving ? 'שומר…' : (isNew ? 'צור משתמש' : 'שמור שינויים')}
         </button>
         {!isNew && (

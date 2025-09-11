@@ -18,7 +18,7 @@ exports.setRefreshCookie = (res, token) => {
     httpOnly: true,
     secure: true,           // true ב-HTTPS
     sameSite: 'None',   // כדי לעבור cross-site
-    domain: 'fitness360-suji.onrender.com', // לא חובה, אפשר להשאיר בלי
+    domain: 'fitness360-suji.onrender.com', // לא חובה, אפשר להשאיר בליINERS
   });
 };
 

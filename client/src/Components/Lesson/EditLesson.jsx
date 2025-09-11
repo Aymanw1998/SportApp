@@ -140,7 +140,8 @@ const EditLesson = () => {
 
   // שמירה
   const handleSave = async () => {
-    let b = true;
+    let b = await validateBeforeSave();
+    if (b) { toast.warn(b); return; }
     for(const tag in [{'name': lesson.name} ,{'date.day': lesson.date.day},{'date.hh': lesson.date.hh}, {'max_trainees': lesson.max_trainees}]){
       validateBeforeSave(tag.key, tag.value);
     }
