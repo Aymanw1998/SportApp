@@ -343,7 +343,7 @@ export default function EditUser() {
       <label style={{color: "red"}}>{error.email}</label>
 
       <label>עיר:</label>
-      <input name="city" value={user.city !== "" ? user.city : (window.innerWidth <= 768 ? 'רמלה' : '')} onChange={onField} />
+      <input name="city" value={user.city !== "" ? user.city : (window.innerWidth > 768 ? 'רמלה' : '')} onChange={onField} />
       <label style={{color: "red"}}>{error.city}</label>
 
       <label>רחוב:</label>
