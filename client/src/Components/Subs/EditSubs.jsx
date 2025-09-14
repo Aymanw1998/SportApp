@@ -132,7 +132,8 @@ const EditSubs = () => {
       console.log('tag', tag, tag.name, tag.value);
       const msg = await validate(tag.name, tag.value);
       setError((prev) => ({ ...prev, [tag.name]: msg }));
-      if(msg !== ''){
+      
+      if(msg && msg !== ''){
         b = false;
       }
     }
