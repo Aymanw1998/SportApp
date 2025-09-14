@@ -126,13 +126,14 @@ const EditSubs = () => {
   const handleSubmit = async (e) => {
     let b = await validate();
     if (b) { toast.warn(b); return; }
+    b = true
     const ff = ['name', 'months', 'times_week', 'price'];
     for(const nameTag in ff){
       const tag = document.getElementsByName(ff[nameTag])[0];
       console.log('tag', tag, tag.name, tag.value);
       const msg = await validate(tag.name, tag.value);
       setError((prev) => ({ ...prev, [tag.name]: msg }));
-      
+      console.log('msg', msg)
       if(msg && msg !== ''){
         b = false;
       }
