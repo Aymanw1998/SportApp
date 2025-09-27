@@ -16,7 +16,7 @@ const EditLesson = () => {
   const navigate = useNavigate();
   const isNew = id === 'new';
   const searchParams = new URLSearchParams(window.location.search);
-  const dayFromUrl = Number(searchParams.get('day')) || 0;
+  const dayFromUrl = Number(searchParams.get('day')) || 1;
   const hhFromUrl = Number(searchParams.get('hh')) || 8;
   const monthFromUrl = Number(searchParams.get('month')) || new Date().getMonth()+1;
   const yearFromUrl = Number(searchParams.get('year')) || new Date().getFullYear();
@@ -112,12 +112,12 @@ const EditLesson = () => {
   };
 
     const validateBeforeSave = async(name = null, value = null) => {
-      console.log(name, value);
         if(!name) {
           // ולידציה בסיסית
           if (!lesson.name?.trim()) return 'שם שיעור חובה';
           const d = Number(lesson.date.day);
           const h = Number(lesson.date.hh);
+          console.log("day,h", d, h);
           if (Number.isNaN(d) || d < 1 || d > 7) return 'יום בשבוע לא תקין';
           if (Number.isNaN(h) || h < 0 || h > 23) return 'שעה לא תקינה';
 

@@ -3,7 +3,7 @@ const router = express.Router();
 
 const {
   getAllU, getOneU, putU, deleteU, postU,
-  addSubForUser, removeSubForUser, countWithoutSubsForUser, CheckPasswordisGood
+  addSubForUser, removeSubForUser, countWithoutSubsForUser, CheckPasswordisGood, changeRoom
 } = require('./User.controller');
 
 // alias
@@ -19,6 +19,8 @@ const requireObjectId = (param) => (req, res, next) => {
   next();
 };
 
+router.get('/public/:tz', getOneU);
+
 // כל הנתיבים כאן מוגנים
 router.use(protect);
 
@@ -32,7 +34,8 @@ router.get('/', getAllU);
 router.get('/:tz', getOneU);
 router.post('/', protectRole('מנהל'), postU);
 router.put('/:tz', putU);
-router.delete('/:tz', protectRole('מנהל'), deleteU);
-router.post("/checkPasswordisGood", CheckPasswordisGood)
+router.delete('/:tz/:from', protectRole('מנהל'), deleteU);
+router.post("/checkPasswordisGood", CheckPasswordisGood);
+router.post("/changeStatus/:tz", protectRole('מנהל'), changeRoom);
 
 module.exports = router;

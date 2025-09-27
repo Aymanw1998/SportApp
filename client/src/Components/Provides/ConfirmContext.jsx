@@ -59,7 +59,8 @@ export function ConfirmProvider({ children }) {
                 {state.options.cancelText} {/* cancelled*/}
               </button>
               <button
-                className={`c-btn ${state.options.danger ? 'c-btn-danger' : 'c-btn-primary'}`}
+                className={`c-btn`}
+                style={{ backgroundColor: state.options.confirmText == "אישור" ? '#d94fd2ff' : (state.options.confirmText == "צור" ? '#09d802ff': (state.options.confirmText == "מחק" ? '#f53615ff': '')), color: 'white' }}
                 onClick={() => close(true)}
                 autoFocus
               >

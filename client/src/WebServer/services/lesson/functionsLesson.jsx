@@ -29,11 +29,13 @@ export const createLesson = async(payload, {confirm = true} = {}) => {
                     return null;
             }
         }
-        const {data, status} = await api.post('/lesson', payload);
-        console.log(data, status);
-        if(![200,201].includes(status) || !data.ok) throw new Error ('השיעור לא נוצר');
-        return {ok: true, lesson: data.lesson || data.schema};
+        console.log("create lesson", payload);
+        const res = await api.post('/lesson', payload);
+        console.log(res);
+        if(![200,201].includes(res.status) || !res.data.ok) throw new Error ('השיעור לא נוצר');
+        return {ok: true, lesson: res.data.lesson || res.data.schema};
     } catch(err) {
+        console.error(err);
         return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
     }
 }

@@ -40,14 +40,9 @@ export default function LoginPage() {
             console.log("me", me?.role === 'מתאמן', !me?.subs?.id, me.wallet > 0)
             // כללי מנוי למתאמן
             if (me?.role === 'מתאמן' && !me?.subs?.id) {
-                if(true){
                     toast.warn('אין לך מנוי כדי להשתמש במערכת, נא בחר מנוי אפשרי');
                     navigate(`/selectSubfor/${encodeURIComponent(me.tz)}`);
                     return;
-                } else {
-                    toast.error('אין לך מנוי, ואין לך כסף לרכישה, נא להודיע למנהל');
-                    return;
-                }
             }
 
             // הודעת ברוך הבא (אופציונלי)
@@ -60,6 +55,7 @@ export default function LoginPage() {
             navigate(from, { replace: true });
         } catch (err) {
             console.error('Login error:', err?.response?.data || err.message);
+            toast.error(err?.response?.data?.message || err.message || 'נכשלת התחברות, נסה שוב');
         } finally {
         setLoading(false);
         }
@@ -80,6 +76,7 @@ export default function LoginPage() {
                     <input ref={passwordRef} name="password" type="password" placeholder="סיסמה" value={password} onChange={(e)=>setPassword(e.target.value)} onKeyDown={handleKeyDown} required />
                     <button type="submit" onClick={handleLogin}>{loading ? '...' : 'כניסה'}</button>
                     <a href='/quotation'>בדיקת הצעת מחיר לרישום מהיום הזה</a>
+                    <a href='/register'>רישום משתמש חדש למערכת</a>
                 </div>
             </div>
         </div>

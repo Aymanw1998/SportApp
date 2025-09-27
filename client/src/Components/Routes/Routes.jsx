@@ -3,6 +3,7 @@ import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
 import LoginPage from '../Auth/LoginPage/LoginPage';
+import RegisterPage from '../Auth/RegisterPage/RegisterPage';
 import AssignSubPage from '../Auth/SelectSubs/AssignSubPage';
 
 import Header from '../Header/Header';
@@ -37,6 +38,7 @@ export default function CRoutes() {
       <Route path="/" element={<PublicOnly/>} />
       <Route path="/login" element={<PublicOnly/>} />
       <Route path="/quotation" element={<AssignSubPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       {/* מוגן */}
       <Route element={<RequireAuth />}>
         <Route element={<ProtectedLayout />}>

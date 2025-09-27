@@ -4,19 +4,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   getUserById,
   createUser,
-  updateUser,
-  deleteUser,
-  removeSub,
-} from '../../WebServer/services/user/functionsUser';
-import { getOne as getSubById } from '../../WebServer/services/subs/functionsSubs';
-import styles from './EditUser.module.css';
-import { toast } from '../../ALERT/SystemToasts';
+} from '../../../WebServer/services/user/functionsUser';
+import styles from './RegisterPage.module.css';
+import { toast } from '../../../ALERT/SystemToasts';
+import { register } from '../../../WebServer/services/auth/fuctionsAuth';
 
 const initialUser = {
   tz: '', password: '',
   firstname: '', lastname: '', birth_date: '',
   gender: '', phone: '', email: '',
-  city: '', street: '', role: '', wallet: 0,
+  city: window.innerWidth < 768 ? 'רמלה' : '', street: '', role: 'מתאמן', wallet: 0,
   subs: { id: null, start: { day: -1, month: -1, year: -1 } },
 };
 
@@ -38,70 +35,18 @@ const displayPhoneLocal = (val) => {
   return v.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'); // 05x-xxx-xxxx
 };
 
-export default function EditUser() {
+export default function RegisterPage() {
 
-  const { id } = useParams(); // tz או "new"
   const navigate = useNavigate();
-  const isNew = id === 'new';
+  const isNew = true;
 
   const [user, setUser] = useState(initialUser);
-  const [error, setError] = useState({...initialUser, birth_date: ''});
-  const [sub, setSub] = useState(null);
-  useEffect(()=>console.log("sub", sub), [sub]);
-  const [walletDelta, setWalletDelta] = useState('');
+  const [error, setError] = useState({...initialUser, birth_date: '', city: ''});
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
-
-  // טען משתמש + מנוי
-  useEffect(() => {
-    if (isNew) return;
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-        const res = await getUserById(id);
-        if (!res?.ok) {
-          setErr('משתמש לא נמצא');
-          return;
-        }
-        // מלא חסרים ושמור טלפון בפורמט E164
-        const u = { ...initialUser, ...res.user };
-        console.log("res.user", res.user)
-        console.log("new user", u)
-        u.phone = normalizePhoneToIntl(u.phone);
-        setUser(u);
-
-        // טען מנוי אם קיים
-        const subId = res?.user?.subs?.id;
-        if (subId) {
-          try {
-            const resS = await getSubById(subId);
-            console.log("the subs", resS)
-            if(!resS.ok) throw new Error(res.message);
-
-            setSub(resS.sub);
-          } catch {
-            setSub(null);
-          }
-        } else {
-          setSub(null);
-        }
-      } catch (e) {
-        setErr('שגיאה בטעינת משתמש');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, isNew]);
-
-  const canSave = useMemo(() => {
-    if (!user.tz?.trim() && isNew) return false;
-    if (!user.role) return false;
-    return true;
-  }, [user, isNew]);
 
   function isValidIsraeliId(id) {
     if (!/^\d{5,9}$/.test(id)) return false;
@@ -112,6 +57,7 @@ export default function EditUser() {
       if (n > 9) n -= 9;
       sum += n;
     }
+    console.log("isValidIsraeliId", id, sum, sum % 10 === 0);
     return sum % 10 === 0;
   }
 
@@ -129,13 +75,6 @@ export default function EditUser() {
     const local = e.target.value.replace(/[^\d-]/g, '');
     const intl = normalizePhoneToIntl(local);
     setUser((prev) => ({ ...prev, phone: intl }));
-  };
-
-  const adjustWallet = (sign) => {
-    const delta = Number(walletDelta);
-    if (!Number.isFinite(delta)) return;
-    setUser((prev) => ({ ...prev, wallet: Number(prev.wallet || 0) + (sign * delta) }));
-    setWalletDelta('');
   };
 
   const validateBeforeSave = async(name = null, value = null) => {
@@ -158,12 +97,15 @@ export default function EditUser() {
           tag?.style.setProperty('border', '2px solid red'); // או ישירות סטייל
           return "תעודת זיהות לא חוקית"
         }
-        else if(isNew) {
-          const data = await getUserById(value)
-          if(data.ok){
-            tag?.style.setProperty('border', '2px solid red'); // או ישירות סטייל
-            return "תעודת זיהות קיימת במערכת"
-          } 
+        else {
+          try{
+            const data = await getUserById(value, {publicMode: true});
+            console.log("data", value, data);
+            if(data.ok){
+              tag?.style.setProperty('border', '2px solid red'); // או ישירות סטייל
+              return "תעודת זיהות קיימת במערכת"
+            } 
+          } catch(e){console.log(e)}
         }
         tag?.style.setProperty('border', '2px solid green'); // או ישירות סטייל
         return ""
@@ -241,30 +183,13 @@ export default function EditUser() {
     try {
       setSaving(true);
       setErr(null);
-
-      if (isNew) {
-        const res = await createUser(user);
-        if(!res) return;
-        if (res?.ok) {
-          toast.success('✅ משתמש נוצר בהצלחה');
-          navigate(-1);
-        } else{
-          toast.error('❌ יצירה נכשלה');
-        }
-        return;
-      }
-
-      // עדכון: אל תשלח סיסמה ריקה כדי לאפס
-      const passwordToSend = user.password?.trim() ? user.password : undefined;
-
-      const res1 = await updateUser(user.tz,user);
-      if(!res1)return;
-      console.log("updateUser", res1);
-      if (res1?.ok) {
-        toast.success('✅ עודכן בהצלחה');
+      const res = await register(user);
+      if(!res) return;
+      if (res?.ok) {
+        toast.success('✅ משתמש נכנס לחדר המתנה לאישור מנהל');
         navigate(-1);
-      } else {
-        toast.warn('❌ שמירה נכשלה');
+      } else{
+        toast.error('❌ יצירה נכשלה');
       }
     } catch (e) {
       console.error(e);
@@ -274,45 +199,12 @@ export default function EditUser() {
     }
   };
 
-  const handleDelete = async () => {
-    if (isNew) return;
-    if (!window.confirm('למחוק משתמש?')) return;
-    try {
-      const res = await deleteUser(id, 'active'); // אצלך הנתיב לפי tz
-      if(!res)return;
-      if (res?.ok) {
-        toast.success('✅ המשתמש נמחק');
-        navigate(-1);
-      } else {
-        toast.warn('❌ מחיקה נכשלה');
-      }
-    } catch {
-      toast.error('❌ מחיקה נכשלה');
-    }
-  };
-
-  const handleRemoveSub = async () => {
-    try {
-      const res = await removeSub(user._id);
-      if(!res.ok) throw new Error(res.message)
-      const updated = res?.user || res; // תמיכה בשתי סכימות תשובה
-      if (updated) {
-        setUser((prev) => ({ ...prev, subs: { id: null, start: { day: 0, month: 0, year: 0 } } }));
-        setSub(null);
-        toast.success("✅ המנוי נמחק");      
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error('❌ שגיאה במחיקת מנוי');
-    }
-  };
-
   if (loading) return <div className={styles.formContainer}>טוען…</div>;
   if (err)      return <div className={styles.formContainer} style={{ color: '#b91c1c' }}>{err}</div>;
 
   return (
     <div className={styles.formContainer}>
-      <h2>{isNew ? '➕ הוספת משתמש חדש' : '✏️ עריכת משתמש'}</h2>
+      <h2>➕ הרשמת משתמש חדש</h2>
 
       <label>ת.ז.:</label>
       <input name="tz" value={user.tz} onChange={onField} readOnly={!isNew} />
@@ -326,6 +218,7 @@ export default function EditUser() {
           onChange={onField}
           // placeholder={isNew ? '' : 'השאר ריק כדי לא לשנות'}
         />
+
         <button
           type="button"
           className={styles.togglePassword}
@@ -376,80 +269,26 @@ export default function EditUser() {
       <label style={{color: "red"}}>{error.email}</label>
 
       <label>עיר:</label>
-      <input name="city" value={!isNew ? user.city : (window.innerWidth < 768 ? 'רמלה' : '')} onChange={onField} />
+      <input name="city" value={user.city} onChange={onField} />
       <label style={{color: "red"}}>{error.city}</label>
 
       <label>רחוב:</label>
       <input name="street" value={user.street} onChange={onField} />
       <label style={{color: "red"}}>{error.street}</label>
 
-      <label>תפקיד:</label>
+      {/* <label>תפקיד:</label>
       <select name="role" value={user.role} onChange={onField}>
         <option value="">בחר תפקיד</option>
         <option value="מנהל">מנהל</option>
         <option value="מאמן">מאמן</option>
         <option value="מתאמן">מתאמן</option>
       </select>
-      <label style={{color: "red"}}>{error.role}</label>
-
-      <label>עדכון ארנק:</label>
-      <div className={styles.buttonRow}>
-        <input
-          name="walletDelta"
-          type="number"
-          step="1"
-          value={walletDelta}
-          onChange={(e) => setWalletDelta(e.target.value)}
-          style={{ maxWidth: 120 }}
-        />
-        <button type="button" onClick={() => adjustWallet(+1)}>+</button>
-        <button type="button" onClick={() => adjustWallet(-1)}>-</button>
-        <h3>סה"כ בארנק: {Number(user.wallet) || 0} ₪</h3>
-      </div>
-
-      <label>מנוי נבחר:</label>
-      <div className={styles.buttonRow}>
-        <div>
-          {sub ? (
-            <>
-              <h3>{sub.name}</h3>
-              <p>⏳ {sub.months} חודשים</p>
-              <p>📅 {sub.times_week} פעמים בשבוע</p>
-              <p>💰 {sub.price} ₪</p>
-              <button
-                type="button"
-                style={{ background: 'red' }}
-                className="select-btn"
-                onClick={handleRemoveSub}
-              >
-                מחיקת מנוי
-              </button>
-            </>
-          ) : (
-            <>
-              <h3>לא נבחר מנוי</h3>
-              <button
-                type="button"
-                style={{ background: 'green' }}
-                className="select-btn"
-                onClick={() => navigate(`/selectSubfor/${user.tz}`)}
-              >
-                הוסף מנוי
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      <label style={{color: "red"}}>{error.role}</label> */}
 
       <div className={styles.buttonRow}>
         <button type="button" onClick={handleSave}>
-          {saving ? 'שומר…' : (isNew ? 'צור משתמש' : 'שמור שינויים')}
+          {saving ? 'שומר…' : 'שמור משתמש וחכה לאישור'}
         </button>
-        {!isNew && (
-          <button type="button" style={{ background: 'red' }} onClick={handleDelete}>
-            מחיקת משתמש
-          </button>
-        )}
         <button type="button" style={{ background: '#6b7280' }} onClick={() => navigate(-1)}>
           חזרה
         </button>

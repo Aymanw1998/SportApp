@@ -1,14 +1,31 @@
 // 📁 src/WebServer/services/user/functionsUser.js
+import { fromJSON } from "postcss";
 import { ask } from "../../../Components/Provides/confirmBus";
-import api from "../api";
+import api, { publicApi } from "../api";
 
 // עוזר קטן לאחידות תשובות user מהשרת
 const extractUser = (data) => data?.user ?? data ?? null;
-
+/**
+ * 
+ * @param {*} tz |  מזהה משתמש (תעודת זהות) 
+ * @param {*} from | חדר נוכחי (Active, NoActive, Waiting)
+ * @param {*} to  | חדר יעד (Active, NoActive, Waiting)
+ * 
+ * @returns 
+ */
+export const changeStatus = async (tz, from, to) => {
+  try {
+    const {status, data} = await api.post(`/user/changeStatus/${tz}`, {from, to});
+    if (![200,201].includes(status) || !data?.ok) throw new Error('משתמש לא שונה סטטוס');
+    return { ok: true, message: data.message};
+  }catch(err) {
+    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+  } 
+}
 /** כל המשתמשים */
-export const getAllUser = async () => {
+export const getAllUser = async (rooms = null) => {
   try{
-    const {status, data} = await api.get('/user/');
+    const {status, data} = await api.get('/user/', rooms ? {rooms} : {});
     if (![200,201].includes(status) || !data?.ok) throw new Error('לא קיים משתמשים');
     return {ok: true, users: data.users};
   } catch(err) {
@@ -17,10 +34,10 @@ export const getAllUser = async () => {
 };
 
 /** משתמש לפי מזהה (tz או _id לפי ה־route שלך) */
-export const getUserById = async (tzOrId) => {
+export const getUserById = async (tzOrId, {publicMode = false} = {}) => {
   try {
-    const {status, data} = await api.get(`/user/${tzOrId}`);
-
+    const res = publicMode ? await publicApi.get(`/user/public/${tzOrId}`) : await api.get(`/user/${tzOrId}`);
+    const {status, data} = res;
     if (![200,201].includes(status) || !data?.ok) throw new Error('לא קיים משתמש בעל מזהה' + tzOrId);
     return {ok: true, user: data.user};
   } catch (err) {
@@ -63,7 +80,8 @@ export const updateUser = async (tz, petch, {confirm = true} = {}) => {
 };
 
 /** מחיקת משתמש */
-export const deleteUser = async (tz, {confirm = true} = {}) => {
+export const deleteUser = async (tz, from, {confirm = true} = {}) => {
+  console.log("deleteUser", tz, from);
   if(confirm) {
             const ok = await ask("delete");
             if(!ok) {
@@ -71,7 +89,7 @@ export const deleteUser = async (tz, {confirm = true} = {}) => {
             }
         }
   try {
-    const {status, data} = await api.delete(`/user/${tz}`);
+    const {status, data} = await api.delete(`/user/${tz}/${from}`);
     if (![200,201].includes(status) || !data?.ok) throw new Error ('משתמש לא נמחק');
     return { ok: true, user: null };
   } catch (err) {

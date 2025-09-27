@@ -17,13 +17,22 @@ function markSignedIn(user, accessToken, expirationTime) {
 }
 
 // רישום משתמש חדש (אם יש לך מסך הרשמה)
+/**
+ * 
+ * @param {*} tz |
+ * @param {*} from 
+ * @param {*} to 
+ * @returns 
+ */
 export async function register(payload) {
-  const { data, status } = await api.post('/auth/register', payload, { withCredentials: true });
-  if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'Register failed');
-
-  const { accessToken, expToken: expirationTime, user } = data;
-  markSignedIn(user, accessToken, expirationTime);
-  return user;
+  try{
+  const { data, status } = await api.post('/auth/register/', payload, { withCredentials: true });
+  if (![200,201].includes(status)) throw new Error(data?.message || 'Register failed');
+  return {ok: true, message: data.message || 'User registered successfully'};
+  }catch(err){
+    console.error('Register error:', err?.response?.data || err.message);
+    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+  }
 }
 
 // התחברות עם תעודת זהות + סיסמה

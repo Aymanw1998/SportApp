@@ -25,7 +25,7 @@ function useServerHealth() {
 // ---------- API גלובלי ----------
 const _queue = [];
 export const toast = {
-  _push: (t) => _queue.push(t),
+  _push: (t) => {_queue.length = 0; _queue.push(t)},
   success: (msg, opts = {}) => toast._push({ description: msg, variant: "success", ...opts }),
   info:    (msg, opts = {}) => toast._push({ description: msg, variant: "info",    ...opts }),
   warn:    (msg, opts = {}) => toast._push({ description: msg, variant: "warning", ...opts }),
@@ -102,16 +102,69 @@ function ToastViewport({ baseZIndex = 50 }) {
 // ---------- Item ----------
 function ToastItem({ t, onClose }) {
   const [hover, setHover] = useState(false);
-  const timeoutRef = useRef(null);
+  const isSticky = !!t.sticky;
+  const total = 5000;
 
+  // זמן שנשאר למילוי/תצוגה (ms). ב-sticky נציג ∞ ולא נריץ טיימר
+  const [remaining, setRemaining] = useState(total);
+
+  const intervalRef = useRef(null);
+  const endAtRef = useRef(null); // timestamp שבו אמור להיגמר הטוסט (ms)
+
+  // פורמט mm:ss
+  const formatMMSS = (ms) => {
+    if (ms == null) return "∞";
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const mm = String(Math.floor(s / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return `${s}s`;
+  };
+
+  const stopTick = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  const startTick = () => {
+    stopTick();
+    // אם זו התחלה מחדש (למשל אחרי hover), קבע יעד חדש לפי הזמן שנותר
+    endAtRef.current = Date.now() + (remaining ?? total);
+    intervalRef.current = setInterval(() => {
+      const left = endAtRef.current - Date.now();
+      if (left <= 0) {
+        setRemaining(0);
+        stopTick();
+        onClose(); // סוגרים כשנגמר
+      } else {
+        setRemaining(left);
+      }
+    }, 100); // דיוק נעים לעין
+  };
+
+  // התחלת הטיימר בהיטענות
   useEffect(() => {
-    if (t.sticky || hover) return;
-    timeoutRef.current = window.setTimeout(onClose, t.duration || 5000);
-    return () => timeoutRef.current && window.clearTimeout(timeoutRef.current);
-  }, [hover, t.duration, t.sticky, onClose]);
+    startTick();
+    return () => stopTick();
+  }, []);
 
-  // ⬅⬅⬅ התיקון הקריטי: שימוש ב-classes ממודלים (כולל הווריאנט)
+  // עצירה בעת hover וחידוש כשהעכבר יוצא
+  useEffect(() => {
+    if (hover) {
+      // עוצרים את הספירה; remaining נשאר כמותכן
+      stopTick();
+    } else {
+      // ממשיכים מהזמן שנותר
+      startTick();
+    }
+  }, [hover, isSticky]);
+
+  // עיצוב לפי ווריאנט
   const variantClass = `${styles.toast} ${styles[t.variant || "info"]}`;
+
+  // אחוז התקדמות (לפס)
+  const pct = Math.max(0, Math.min(100, Math.round(((remaining || 0) / total) * 100)));
 
   return (
     <motion.div
@@ -130,11 +183,25 @@ function ToastItem({ t, onClose }) {
           {t.title && <div className={styles.toastTitle}>{t.title}</div>}
           {t.description && <div className={styles.toastDesc}>{t.description}</div>}
         </div>
+
+        {/* ⏱️ טיימר טקסטואלי מימין לכפתור הסגירה */}
+        <div className={styles.toastTimer} aria-label="נותר">
+          {formatMMSS(remaining)}
+        </div>
+
         <button onClick={onClose} aria-label="סגירה" className={styles.toastClose}>×</button>
       </div>
+
+      {/* פס התקדמות בתחתית הכרטיס */}
+      {(
+        <div className={styles.progressBar} aria-hidden="true">
+          <div className={styles.progressFill} style={{ width: `${pct}%` }} />
+        </div>
+      )}
     </motion.div>
   );
 }
+
 
 // ---------- Watcher: Health + Token ----------
 export function SystemStatusWatcher({ options }) {
@@ -154,13 +221,14 @@ export function SystemStatusWatcher({ options }) {
         emitHealth(true);
         if (mounted && fails > 0) {
           push({ variant: "success", description: "✅ חזר חיבור השרת", duration: 3000 });
+
           fails = 0;
         }
       } catch {
         emitHealth(false);
         fails++;
         if (mounted && fails === 1) {
-          push({ variant: "warning", sticky: true, description: "⚠️ אין חיבור לשרת כרגע. ננסה שוב ברקע." });
+          push({ variant: "warning", sticky: true, description: "⚠️ אין חיבור לשרת כרגע. ננסה שוב ברקע.", duration: 10000 });
         }
       }
     };

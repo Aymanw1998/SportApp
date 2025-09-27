@@ -13,7 +13,7 @@ const {
 const { requireAuth, requireRole } = require('../../middleware/authMiddleware'); // לא authMiddleware
 
 // ---------- Public ----------
-router.post('/register', register);
+router.post('/register/', register);
 
 // התחברות – מחזיר access + מציב refresh בקוקי
 router.post('/login', login);

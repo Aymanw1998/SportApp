@@ -20,7 +20,7 @@
   direction: rtl; /* אם אתה כותב בעברית */
 }
 
-.card {
+.cardWaiting, .cardActive, .cardNoActive {
   aspect-ratio: 1 / 1; /* ריבוע */
   background-color: #fff;
   border: 1px solid #ddd;
@@ -33,6 +33,16 @@
   font-family: arial;
   padding: 12px;
   transition: transform 0.2s ease;
+}
+
+.cardWaiting {
+  background-color: #fef3c7; /* צהוב בהיר */
+}
+.cardActive {
+  background-color: #d1fae5; /* ירוק בהיר */
+}
+.cardNoActive {
+  background-color: #fca5a5; /* אדום בהיר */
 }
 
 .card:hover {

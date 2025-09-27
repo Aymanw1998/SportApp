@@ -77,4 +77,5 @@ UserSchema.pre(['findOneAndUpdate', 'updateOne'], async function (next) {
 
 const User = mongoose.model('Users', UserSchema);
 const UserNoActive = mongoose.model('UsersNoActive', UserSchema);
-module.exports = {User, UserNoActive};
+const UserWaitingRoom = mongoose.model('UsersWaitingRoom', UserSchema);
+module.exports = {User, UserNoActive, UserWaitingRoom};

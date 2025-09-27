@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const  { User } = require('./User.model');
+const  { User, UserWaitingRoom, UserNoActive } = require('./User.model');
 const Subs = require('../Subs/Subs.model'); // אם צריך לאמת קיום מנוי
                                      // מודל משתמש (mongoose)
 const {
@@ -70,27 +70,55 @@ const buildData = (body) => ({
   wallet: body.wallet ?? 0,
 });
 
+/**
+ * 
+ * @param {*} req:
+ *    req.params: {tz} - תעודת זהות של המשתמש
+ *    req.body: {from, to} - מחדר לחדר
+ *      rooms: ['waiting', 'active', 'noActive']
+ *      'waiting' - חדר המתנה
+ *      'active' - משתמש פעיל
+ *      'noActive' - משתמש לא פעיל (נגמר לו המנוי ולא חידש) 
+ * @param {*} res 
+ */
+const changeRoom = async (req, res) => {
+  try {
+    const { tz: param } = req.params;
+    const { from, to } = req.body || {};
+    const ObjectFrom = from === 'waiting' ? UserWaitingRoom : from === 'active' ? User : from === 'noActive' ? UserNoActive : null;
+    const ObjectTo = to === 'waiting' ? UserWaitingRoom : to === 'active' ? User : to === 'noActive' ? UserNoActive : null;
+    if (!param) return res.status(400).json({ ok: false, message: 'תעודת זיהות חובה' });
+    if (!from || !to) return res.status(400).json({ ok: false, message: 'חדר מקור וחדר יעד חובה' });
+    if (from === to) return res.status(400).json({ ok: false, message: 'נשלח חדר מקור וחדר יעד אותו חדר' });
+    if (!['waiting', 'active', 'noActive'].includes(from) || !['waiting', 'active', 'noActive'].includes(to)) {
+      return res.status(400).json({ ok: false, message: 'from and to must be one of waiting, active, noActive' });
+    }
+
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(param)) user = await ObjectFrom.findById(param);
+    else user = await ObjectFrom.findOne({tz: param});
+    if (!user) return res.status(404).json({ ok: false, message: `User not found in ${from} room` });
+    const model = buildData(user);
+    await ObjectFrom.deleteOne({ _id: user._id });
+    const created = await ObjectTo.create({ ...model, createdAt: new Date() });
+    return res.status(200).json({ ok: true, user: sanitize(created) });
+  }
+  catch (error) {
+    logWithSource(`err ${error}`.red);
+    return res.status(500).json({ ok: false, message: error.message });
+  }
+}
 const register = async (req, res) => {
   try {
     const model = buildData(req.body);
     const exists = await User.findOne({ tz: model.tz });
     if (exists) return res.status(400).json({ message: 'המשתמש קיים' });
+    const existsWaitingRoom = await UserWaitingRoom.findOne({ tz: model.tz });
+    if (existsWaitingRoom) return res.status(400).json({ message: 'המשתמש מחכה בחדר המתנה' });
 
-    const created = await User.create({ ...model, createdAt: new Date() });
+    const created = await UserWaitingRoom.create({ ...model, createdAt: new Date() });
 
-    const accessToken  = signAccessToken (({ _id: created._id.toString(), tz: created.tz, role: created.role }));
-    const { exp } = jwt.decode(accessToken);       // exp in seconds
-    const refreshToken  = signAccessToken (({ _id: created._id.toString(), tz: created.tz, role: created.role }));
-
-    await User.findByIdAndUpdate(created._id, { refreshToken });
-    setRefreshCookie(res, refreshToken);
-
-    return res.status(201).json({
-      ok: true,
-      accessToken, // הקליינט ישמור וישלח כ-Bearer
-      expToken: exp * 1000, 
-      user: created,
-    });
+  return res.status(200).json({ message: 'המשתמש נרשם לחדר המתנה' });
   } catch (error) {
     logWithSource(`err ${error}`.red);
     return res.status(400).json({ message: error.message });
@@ -101,19 +129,24 @@ const login = async (req, res) => {
   logWithSource("login")
   const { tz, password } = req.body || {};
   try {
-    if (!tz || !password) return res.status(400).json({ code: 'BAD_INPUT', message: 'Tz and password are required' });
+    if (!tz || !password) return res.status(400).json({ code: 'BAD_INPUT', message: 'ת.ז. וסיסמה חובה' });
 
     // מאתר את המשתמש לפי שם משתמש בנורמליזציה (lowercase/trim)
     const normTz = String(tz).trim();         // נרמול בסיסי    
     const user = await User.findOne({ tz: normTz });
+    const userWaiting = await UserWaitingRoom.findOne({ tz: normTz });
+    const userNoActive = await UserNoActive.findOne({ tz: normTz });
     console.log("normTz", normTz);
     console.log("user", user);
-    if (!user) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Invalid tz or password' });
+    if (!user && !userWaiting && !userNoActive) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'ת.ז. או סיסמה שגויה' });
+    if(!user && userWaiting) return res.status(403).json({ code: 'IN_WAITING_ROOM', message: 'המשתמש מחכה לאישור מנהל במערכת' });
+    if(!user && userNoActive) return res.status(403).json({ code: 'NO_ACTIVE', message: 'אין לך משתמש פעיל, נא ליצור קשר עם המנהל' });
+    
     console.log("login user", user);
     // משווה סיסמה (השוואה לסיסמה המוצפנת במאגר)
     const ok = await bcrypt.compare(password, user.password);
     console.log("login password ok", ok);
-    if (!ok) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Invalid tz or password' });
+    if (!ok) return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'ת.ז. או סיסמה שגויה' });
 
     // יוצר access token קצר-תוקף
     const accessToken = signAccessToken({ id: user._id.toString(), tz: user.tz, role: user.role });
@@ -162,7 +195,7 @@ const refreshAccessToken = async (req, res) => {
 
     // מאתר את המשתמש לפי מזהה מתוך ה-refresh
     const user = await User.findById(payload.id);
-    if (!user) return res.status(401).json({ code: 'USER_NOT_FOUND', message: 'User not found' });
+    if (!user) return res.status(401).json({ code: 'USER_NOT_FOUND', message: 'משתמש לא קיים' });
 
     // בודק שה-hash של ה-refresh שנשמר במסד תואם לטוקן שב-cookie
     const matches = user.refreshHash && user.refreshHash === sha256(token);
@@ -211,12 +244,19 @@ try {
 };
 
 // --- CRUD (כפי שיש לך) ---
-const getAllU = async (_req, res) => {
+const getAllU = async (req, res) => {
   try {
-    const users = await User.find().lean();
+    
+    let users = [];
+    for(const room of req.body.rooms || ['waiting', 'active', 'noActive']) {
+      const Object = room === 'waiting' ? UserWaitingRoom : room === 'active' ? User : room === 'noActive' ? UserNoActive : null;
+      const roomUsers = await Object.find().lean();
+      users = users.concat(roomUsers.map(u => ({...u, room})));
+    }
+    
     return res.status(200).json({ ok: true, users: users.map(sanitize) });
   } catch (err) {
-    logWithSource(`err ${error}`.red);
+    logWithSource(`err ${err}`.red);
     return res.status(500).json({ ok: false, users: [] });
   }
 };
@@ -307,7 +347,11 @@ const putU = async (req, res) => {
 
 const deleteU = async (req, res) => {
   try {
-    const deleted = await User.findOneAndDelete({ tz: String(req.params.tz).trim() });
+    if (!req.params.tz) return res.status(400).json({ ok: false, message: 'tz is required' });
+    console.log("delete user", req);
+    const Object = req.params.from === 'waiting' ? UserWaitingRoom : req.body.from === 'noActive' ? UserNoActive : User
+
+    const deleted = await Object.findOneAndDelete({ tz: String(req.params.tz).trim() });
     if (!deleted) return res.status(404).json({ ok: false, message: 'User not found' });
         return res.status(200).json({ ok: true, removed: true });
   } catch (err) {
@@ -319,7 +363,6 @@ const deleteU = async (req, res) => {
 const getme = async (req, res) => {
   try {
     // req.user מולא במידלוור authRequired
-    console.log("getme func server", req.user);
     const user = await User.findById(req.user.id).lean();
     if (!user) return res.status(401).json({ code: 'USER_NOT_FOUND' });
 
@@ -433,4 +476,5 @@ module.exports = {
   addSubForUser,
   removeSubForUser,
   countWithoutSubsForUser,
+  changeRoom
 };

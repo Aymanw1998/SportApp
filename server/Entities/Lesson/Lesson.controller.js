@@ -99,12 +99,12 @@ const postOne = async(req, res) => {
             'date.hh':  model.date.hh,
             "date.month": model.date.month,
             "date.year": model.date.year,
-            trainer:    model.trainer,
-            createdAt:   new Date(),
+            // trainer:    model.trainer,
+            // createdAt:   new Date(),
         });
-
+        console.log("collision", collision);
         if (collision) {
-            return res.status(409).json({ ok: false, code: 'SLOT_TAKEN', message: 'קיים שיעור לאותו מאמן באותה משבצת החודש' });
+            return res.status(409).json({ ok: false, message: 'קיים שיעור באותה זמן' });
         }
 
         const doc = await Lesson.create({ ...model, created: new Date() });
@@ -146,7 +146,7 @@ const putOne = async(req, res) => {
             });
             console.log("collision", collision);
             if (collision) {
-                return res.status(409).json({ ok: false, code: 'SLOT_TAKEN', message: 'משבצת תפוסה לאותו מאמן' });
+                return res.status(409).json({ ok: false, message: 'משבצת תפוסה לאותו מאמן' });
             }
         }
 
