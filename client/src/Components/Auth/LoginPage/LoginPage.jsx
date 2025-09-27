@@ -74,9 +74,10 @@ export default function LoginPage() {
                     <h2>התחברות</h2>
                     <input ref={tzRef} name="tz" type="text" placeholder="תעודת זיהות" value={tz} onChange={(e)=>setTz(e.target.value)} onKeyDown={handleKeyDown} required />
                     <input ref={passwordRef} name="password" type="password" placeholder="סיסמה" value={password} onChange={(e)=>setPassword(e.target.value)} onKeyDown={handleKeyDown} required />
-                    <button type="submit" onClick={handleLogin}>{loading ? '...' : 'כניסה'}</button>
-                    <a href='/quotation'>בדיקת הצעת מחיר לרישום מהיום הזה</a>
-                    <a href='/register'>רישום משתמש חדש למערכת</a>
+                    <button type="submit" style={{backgroundColor: "#88f388ff", color: "#000"}} onClick={handleLogin}>{loading ? '...' : 'כניסה'}</button>
+                    {/* <a href='/quotation'>בדיקת הצעת מחיר לרישום מהיום הזה</a> */}
+                    <hr />
+                    <button type="submit" style={{backgroundColor: "#4cfdfdff", color: "#000"}} onClick={()=>navigate("/register")}>{loading ? '...' : 'רישום משתמש חדש למערכת'}</button>
                 </div>
             </div>
         </div>

@@ -112,11 +112,12 @@
 @media (max-width: 768px) {
   .rightPanel {
   /* position: absolute; */
-      padding: 20px;
+      padding: 10px;
       background-image: url('../../../images/logo.png'); /* שנה לנתיב הנכון אצלך */
-      background-size: contain;
+      /* background-size: contain; */
       background-repeat: no-repeat;
       background-position: center;
+      background-size: 400px 400px;
       opacity: 10;
       z-index: 3;
   }
@@ -139,15 +140,15 @@
 
 @media (max-width: 480px) {
   .loginForm {
-    padding: 10px;
+    padding: 5px;
   }
 
   .loginForm h2 {
-    font-size: 20px;
+    font-size: 30px;
   }
 
   .welcomeText h2 {
-    font-size: 20px;
+    font-size: 30px;
   }
 }
 
