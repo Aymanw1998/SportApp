@@ -36,7 +36,7 @@ export const createLesson = async(payload, {confirm = true} = {}) => {
         return {ok: true, lesson: res.data.lesson || res.data.schema};
     } catch(err) {
         console.error(err);
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || 'נוצר שגיאה בתהליך'};
     }
 }
 export const updateLesson = async(_id, payload, {confirm = true} = {}) => {

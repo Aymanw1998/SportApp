@@ -1,7 +1,8 @@
 //server
 const Training = require("./Training.model")
 const { logWithSource } = require("../../middleware/logger");
-const buildStudentData = (body) => ({
+const mongoose = require("mongoose");
+const buildData = (body) => ({
     name: body.name,
     info: body.info,
 });
@@ -22,7 +23,11 @@ const getAll = async(req, res) => {
 const getOne = async (req, res) => {
     try{
         logWithSource(req.params);
-        const schema = await Training.findOne({name: req.params.name});
+        const { id } = req.params;
+        const findFilter = mongoose.Types.ObjectId.isValid(id)
+        ? { _id: id }
+        : { name: id };
+        const schema = await Training.findOne(findFilter);
         logWithSource("schema", schema);
         res.status(200).json({ok: true, training: schema});
     }
@@ -49,12 +54,12 @@ const postOne = async(req, res) => {
 
 const putOne = async(req, res) => {
     try {
-        const { idOrName } = req.params;
+        const { id } = req.params;
 
         // מאתרים את הרשומה הקיימת
-        const findFilter = mongoose.Types.ObjectId.isValid(idOrName)
-        ? { _id: idOrName }
-        : { name: idOrName };
+        const findFilter = mongoose.Types.ObjectId.isValid(id)
+        ? { _id: id }
+        : { name: id };
 
         const current = await Training.findOne(findFilter);
         if (!current) return res.status(404).json({ ok: false, message: 'לא נמצא' });
@@ -75,12 +80,12 @@ const putOne = async(req, res) => {
 }
 const deleteOne= async(req, res) => {
     try {
-        const { idOrName } = req.params;
+        const { id } = req.params;
         const hard = String(req.query.hard || '0') === '1';
 
-        const findFilter = mongoose.Types.ObjectId.isValid(idOrName)
-        ? { _id: idOrName }
-        : { name: idOrName };
+        const findFilter = mongoose.Types.ObjectId.isValid(id)
+        ? { _id: id }
+        : { name: id };
 
         const training = await Training.findOne(findFilter);
         if (!training) return res.status(404).json({ ok: false, message: 'לא נמצא' });

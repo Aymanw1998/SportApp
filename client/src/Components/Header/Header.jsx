@@ -151,6 +151,7 @@ export default function Header() {
                       {role !== "מתאמן" && (<a href="/users" onClick={(e) => onNavClick(e, "/users")}>משתמשים</a>)}
                       <a href="/lessons" onClick={(e) => onNavClick(e, "/lessons")}>שיעורים</a>
                       {role !== "מתאמן" && (<a href="/subs" onClick={(e) => onNavClick(e, "/subs")}>מנויים</a>)}
+                      {role !== "מתאמן" && (<a href="/trainings" onClick={(e) => onNavClick(e, "/trainings")}>אימונים</a>)}
                       {role === "מתאמן" && (<a href="/regnextmonth" 
                         style={
                           new Date().getDate() === new Date().getDate() ?
@@ -166,6 +167,7 @@ export default function Header() {
                 {role !== "מתאמן" && (<a href="/users" onClick={(e) => onNavClick(e, "/users")}>משתמשים</a>)}
                 <a href="/lessons" onClick={(e) => onNavClick(e, "/lessons")}>שיעורים</a>
                 {role !== "מתאמן" && (<a href="/subs" onClick={(e) => onNavClick(e, "/subs")}>מנויים</a>)}
+                {role !== "מתאמן" && (<a href="/trainings" onClick={(e) => onNavClick(e, "/trainings")}>אימונים</a>)}
                 {role === "מתאמן" && (<a href="/regnextmonth" 
                   style={
                     new Date().getDate() === new Date().getDate() ?

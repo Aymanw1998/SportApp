@@ -20,6 +20,8 @@ import EditSubs from '../Subs/EditSubs';
 import RequireAuth from './RequireAuth';
 import RoleGuard from './RoleGuard';
 import PublicOnly from './PublicOnly';
+import ViewAllTraining from '../Training/ViewAllTraining';
+import EditTraining from '../Training/EditTraining';
 
 function ProtectedLayout() {
   // Header רק בדפים מוגנים
@@ -52,6 +54,8 @@ export default function CRoutes() {
             <Route path="/users/:id" element={<EditUser />} />
             <Route path="/subs" element={<ViewAllSubs />} />
             <Route path="/subs/:id" element={<EditSubs />} />
+            <Route path="/trainings" element={<ViewAllTraining />} />
+            <Route path="/trainings/:id" element={<EditTraining />} />
           </Route>
 
           {/* כל מחוברים */}

@@ -11,12 +11,12 @@ router.use(protect);
 
 // קריאה/צפייה לכל משתמש מחובר
 router.get('/', getAll);
-router.get('/:idOrName', getOne);
+router.get('/:id', getOne);
 
 // מכאן והלאה – למנהלים בלבד
 router.use(protectRole('מנהל'));
 router.post('/', postOne);
-router.put('/:idOrName', putOne);
-router.delete('/:idOrName', deleteOne);
+router.put('/:id', putOne);
+router.delete('/:id', deleteOne);
 
 module.exports = router;

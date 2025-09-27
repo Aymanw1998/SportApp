@@ -1,3 +1,4 @@
+import { ask } from "../../../Components/Provides/confirmBus";
 import api,{ setAuthToken } from "../api";
 export const getAll = async() => {
     try{
@@ -29,8 +30,9 @@ export const getOne = async(idOrName) => {
  */
 
 export const create = async(payload, {confirm = true} = {}) => {
+    console.log("create training", payload, confirm);
     if(confirm) {
-        const ok = await ask("craete");
+        const ok = await ask("create");
         if(!ok) {
             return null;
         }
@@ -52,6 +54,7 @@ export const create = async(payload, {confirm = true} = {}) => {
  * @param {{name?: string, info?: string}} patch
  */
 export const update= async(idOrName, patch,{confirm = true} = {}) => {
+    console.log("update training", idOrName, patch, confirm);
     if(confirm) {
         const ok = await ask("change");
         if(!ok) {

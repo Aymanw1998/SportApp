@@ -8,6 +8,7 @@ import {
   deleteLesson,
 } from '../../WebServer/services/lesson/functionsLesson';
 import { getAllUser, getUserById } from '../../WebServer/services/user/functionsUser';
+import { getAll } from '../../WebServer/services/training/functionTraining';
 import styles from './EditLesson.module.css';
 import { toast } from '../../ALERT/SystemToasts';
 
@@ -38,6 +39,7 @@ const EditLesson = () => {
 
   const [trainees, setTrainees] = useState([]);
   const [trainers, setTrainers] = useState([]);
+  const [trainings, setTrainings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchTerm2, setSearchTerm2] = useState('');
   const [showTraineeModal, setShowTraineeModal] = useState(false);
@@ -84,6 +86,15 @@ const EditLesson = () => {
     } catch (e) {
       console.error(e);
       navigate(-1);
+    }
+    try{
+      const resT = await getAll();
+      console.log("resT", resT);
+      if(!resT.ok) throw new Error(resT.message);
+      setTrainings(resT.trainings || []);
+    }
+    catch(err){
+      console.error(err.message)
     }
   };
 
@@ -153,13 +164,13 @@ const EditLesson = () => {
       
       if (!resL) return;
       if (resL.ok) {
-        alert(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
+        // alert(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
         console.log(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
         toast.success(`✅ השיעור ${id === 'new'? 'נשמר' : 'עודכן' } בהצלחה`);
         navigate(-1);
       } else {
-        alert(resL.message || '❌ שגיאה בשמירה');
-        console.warn(resL.message || '❌ שגיאה בשמירה');
+        // alert(resL.message || '❌ שגיאה בשמירה');
+        // console.warn(resL.message || '❌ שגיאה בשמירה');
         toast.warn(resL.message || '❌ שגיאה בשמירה');
       }
     } catch (e) {
@@ -205,14 +216,29 @@ const EditLesson = () => {
 
       <div className={styles.formControl}>
         <label>שם שיעור:</label>
-        <input
+        {/* <input
           type="text"
           name="name"
           value={lesson.name}
           onChange={handleChange}
           placeholder="הכנס שם שיעור"
           disabled={localStorage.getItem('role') !== 'מנהל'}
-        />
+        /> */}
+        <select
+          name="name"
+          value={lesson.name}
+          onChange={handleChange}
+          disabled={localStorage.getItem('role') !== 'מנהל'}
+        >
+          <option value="">בחר אימון</option>
+          {trainings.length > 0 &&
+            trainings.map((t) => (
+              <option key={t._id} value={t.name}>
+                {t.name}
+              </option>
+            ))}
+        </select>
+
         <label style={{color: "red"}}>{error.name}</label>
       </div>
 
