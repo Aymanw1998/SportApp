@@ -43,37 +43,35 @@ UserSchema.methods.comparePassword = function (plain) {
   return bcrypt.compare(plain, this.password);
 };
 
+const isBcryptHash = (val) => typeof val === 'string' && /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(val);
 
 // האשים סיסמה לפני שמירה (אם שונתה)
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+  if (isBcryptHash(this.password)) return next(); // כבר האש – לא נוגעים
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
-})
+});
 
-// hashing גם בעדכונים (findOneAndUpdate / updateOne)
+// האשים גם בעדכונים – רק אם לא האש
 UserSchema.pre(['findOneAndUpdate', 'updateOne'], async function (next) {
   const update = this.getUpdate() || {};
-  console.log("update", update);
-  // תמיכה בשני פורמטים של עדכון
-  const pwd = update.password || (update.$set && update.$set.password);
-  console.log("pwd", pwd);
-  // אם לא שולחים סיסמה – לא נוגעים
+  const pwd = update.password ?? update.$set?.password;
+
   if (pwd == null || pwd === '') {
     if (update.password) delete update.password;
     if (update.$set) delete update.$set.password;
     return next();
   }
+  if (isBcryptHash(pwd)) return next(); // כבר האש – אל תיגע
 
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(pwd, salt);
   if (update.password) update.password = hash;
   if (update.$set)     update.$set.password = hash;
-
   next();
 });
-
 
 const User = mongoose.model('Users', UserSchema);
 const UserNoActive = mongoose.model('UsersNoActive', UserSchema);

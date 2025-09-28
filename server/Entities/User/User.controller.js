@@ -98,9 +98,18 @@ const changeRoom = async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(param)) user = await ObjectFrom.findById(param);
     else user = await ObjectFrom.findOne({tz: param});
     if (!user) return res.status(404).json({ ok: false, message: `User not found in ${from} room` });
-    const model = buildData(user);
+    // חשוב: שיהיה לך את שדה הסיסמה הקיים (שהוא כבר hash)
+    const raw = user.toObject();
+    delete raw._id;         // צריך _id חדש בקולקשן היעד
+    delete raw.createdAt;   // תן ל-timestamps ליצור מחדש
+    delete raw.updatedAt;
+
+    // צור במסד היעד – ההוקים ידלגו כי זה כבר bcrypt
+    const created = await ObjectTo.create(raw);
+
+    // מחק מהמקור רק אחרי יצירה מוצלחת
     await ObjectFrom.deleteOne({ _id: user._id });
-    const created = await ObjectTo.create({ ...model, createdAt: new Date() });
+
     return res.status(200).json({ ok: true, user: sanitize(created) });
   }
   catch (error) {
