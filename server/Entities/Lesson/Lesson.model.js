@@ -5,9 +5,11 @@ const schema = new mongoose.Schema({
     name: { type: String, required: true },
     date: {
         day: { type: Number, required: true, min: 1, max: 7 }, // 0=Sun..6=Sat
-        hh:  { type: Number, required: true, min: 1, max: 24 }, // 0..23
+        // hh:  { type: Number, required: true, min: 1, max: 24 }, // 0..23
         month: { type: Number, required: true, min: 1, max: 12 }, // 0..23 
         year: {type: Number, required: true},
+        startMin: { type: Number, required: true, min: 0, max: 1439 }, // 0..1439
+        endMin: { type: Number, required: true, min: 1, max: 1440 }, // 0..1439
     },
     max_trainees: { type: Number, default: 20, min: 0 },
     trainer: {

@@ -14,6 +14,8 @@ export default function AssignSubPage() {
   const { id } = useParams();        // בד"כ tz או _id לפי הראוטר שלך
   const [selectedSub, setSelectedSub] = useState(null);
   const [selectedLessons, setSelectedLessons] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState("current");
+  useEffect(()=>console.log("selectedMonth", selectedMonth), [selectedMonth])
   const [selectedDays, setSelectedDays] = useState([]);
   const [user1, setUser1] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,7 @@ export default function AssignSubPage() {
     }
     console.log("listDays", listDays)
     setSelectedDays(listDays);
-    if(listDays.length > 0 && user1 && user1.wallet > 0) {
+    if(((listDays.length > 0 && selectedMonth === "current") || (selectedMonth === "next"))&& user1 && user1.wallet > 0) {
       SetDosave(true);
     } else SetDosave(false);
   },[selectedLessons])
@@ -61,11 +63,22 @@ export default function AssignSubPage() {
     if(window.location.pathname === "/quotation") return;
     if (!selectedSub) return toast.warn('בחר מנוי קודם!');
     if (!user1) return;
+    let startDate = new Date();
+    if(selectedMonth === "current" && (!selectedDays || selectedDays.length === 0)) {
+      return <h4>עדיין לא נבחר כלום לחישוב</h4>
+    }
+    else if(selectedSub === "next") {
+      console.log("startDate first", startDate.toLocaleString());
+      startDate = new Date(startDate.setMonth(startDate.getMonth() + 1));
+      console.log("startDate change month", startDate.toLocaleString());
+      startDate = new Date(startDate.setDate(1));
+      console.log("startDate change day", startDate.toLocaleString());
+    } 
     // בדיקת יתרת ארנק
     const quote = calcProratedQuote({
       planPrice:  selectedSub?.price,
       months:     selectedSub?.months,
-      startDate:  new Date(),
+      startDate:  startDate,
       daysOfWeek: selectedDays,
       roundTo: 1,
     })
@@ -104,10 +117,21 @@ export default function AssignSubPage() {
 
   const forPay = () => {
     console.log("forPay func", selectedSub, selectedDays, new Date().toISOString());
+    let startDate = new Date();
+    if(selectedMonth === "current" && (!selectedDays || selectedDays.length === 0)) {
+      return <h4>עדיין לא נבחר כלום לחישוב</h4>
+    }
+    else if(selectedMonth === "next") {
+      console.log("startDate first", startDate.toLocaleString());
+      startDate = new Date(startDate.setMonth(startDate.getMonth() + 1));
+      console.log("startDate change month", startDate.toLocaleString());
+      startDate = new Date(startDate.setDate(1));
+      console.log("startDate change day", startDate.toLocaleString());
+    } 
     const quote = calcProratedQuote({
       planPrice:  selectedSub?.price,
       months:     selectedSub?.months,
-      startDate:  new Date(),
+      startDate:  startDate,
       daysOfWeek: selectedDays,
       roundTo: 1,
     })
@@ -125,9 +149,9 @@ export default function AssignSubPage() {
       }
       return (
         <>
-        <h4>מחיר סופי לתשלום: {quote.price}</h4>
-        <h4>תאריך התחלה: {funcDDMMYYYY(quote.period.start) || "null"}</h4>
-        <h4>תאריך סיום: {funcDDMMYYYY(quote.period.end) || "null"}</h4>
+          <h4>מחיר סופי לתשלום: {quote.price}</h4>
+          <h4>תאריך התחלה: {funcDDMMYYYY(quote.period.start) || "null"}</h4>
+          <h4>תאריך סיום: {funcDDMMYYYY(quote.period.end) || "null"}</h4>
         </>
       )
     }
@@ -163,9 +187,9 @@ export default function AssignSubPage() {
       { selectedSub &&
         <>
           <h2 style={{ textAlign: 'center' }}>הצעת מחיר לרישום בפעם הראשונה</h2>
-          {<SelectDaysForTrainee selectedSubs={selectedSub} selected={selectedLessons} setSelected={setSelectedLessons}/>}
-          <h3>פירוט:</h3> 
-          {selectedDays && selectedDays.length > 0 && forPay()}
+          {<SelectDaysForTrainee selectedSubs={selectedSub} selected={selectedLessons} setSelected={setSelectedLessons} selectedMonth={selectedMonth} setSelectedMonth= {setSelectedMonth}/>}
+          {((selectedMonth === "current" && selectedDays && selectedDays.length > 0) || selectedMonth !== "current") && <h3>פירוט:</h3>} 
+          {((selectedMonth === "current" && selectedDays && selectedDays.length > 0) || selectedMonth !== "current") && forPay()}
         </>
       }
 

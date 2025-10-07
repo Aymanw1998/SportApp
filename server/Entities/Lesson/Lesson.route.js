@@ -10,6 +10,8 @@ const {
   deleteOne,
   addToList,
   removeFromList,
+  copyMonth,
+  deletePerMonth,
 } = require('./Lesson.controller');
 
 // alias כדי לשמור על protect/protectRole
@@ -32,5 +34,6 @@ router.post('/removeFromList/:id', removeFromList);
 router.post('/', postOne);
 router.put('/:id', putOne);
 router.delete('/:id', deleteOne);
-
+router.post('/copy-month', copyMonth);
+router.delete('/delete-perMonth/:month/:year', deletePerMonth);
 module.exports = router;

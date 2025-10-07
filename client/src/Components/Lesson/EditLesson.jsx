@@ -24,10 +24,13 @@ const EditLesson = () => {
 
   const [lesson, setLesson] = useState({
     name: '',
-    date: { day: dayFromUrl, hh: hhFromUrl,month: monthFromUrl, year: yearFromUrl },
-    trainer: '',
-    max_trainees: 10,
-    list_trainees: [],
+    date: { 
+      day: dayFromUrl,     
+      startMin: hhFromUrl*60,           // אם הגיע 'hh' מה-URL
+      endMin:   hhFromUrl*60 + 45,
+      month: monthFromUrl, 
+      year: yearFromUrl },
+      trainer: '', max_trainees: 10, list_trainees: [],
   });
   const [error, setError] = useState({
     name: '',
@@ -37,6 +40,34 @@ const EditLesson = () => {
     list_trainees: [],
   });
 
+  // helper להמרת HH:MM <-> דקות
+  const toMin = (hhmm) => {
+    const [hh, mm] = (hhmm || '00:00').split(':').map(Number);
+    return (hh*60 + (mm||0))|0;
+  };
+  const toHHMM = (min) => {
+    const h = Math.floor(min/60);
+    const m = min%60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  };
+
+  // handleChange לשדות שעות
+  const handleTimeChange = (name, hhmm) => {
+    console.log("handleTimeChange", name, hhmm, toMin(hhmm));
+    setLesson(prev => {
+      let startMin = prev.date.startMin;
+      let endMin   = prev.date.endMin;
+      console.log("before", startMin, endMin);
+      if (name === 'start') {
+        startMin = toMin(hhmm);
+        if (endMin <= startMin) endMin = startMin + 45
+      } else {
+        endMin = toMin(hhmm);
+        if (endMin <= startMin + 45) endMin = startMin + 45; // לפחות דקה אחת
+      }
+      return { ...prev, date: { ...prev.date, startMin, endMin } };
+    });
+  };
   const [trainees, setTrainees] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [trainings, setTrainings] = useState([]);
@@ -76,7 +107,8 @@ const EditLesson = () => {
       if (id !== 'new') {
         const resL = await getOneLesson(id);
         if(!resL.ok) throw new Error(resL.message);
-        const l = resL.lesson
+        const l = resL.lesson;
+        console.log("l", l);
         if (l) {
           setLesson(l);
         } else {
@@ -126,11 +158,13 @@ const EditLesson = () => {
         if(!name) {
           // ולידציה בסיסית
           if (!lesson.name?.trim()) return 'שם שיעור חובה';
-          const d = Number(lesson.date.day);
-          const h = Number(lesson.date.hh);
-          console.log("day,h", d, h);
+          const d = Number(lesson.date.day) ;
+          const start = Number(lesson.date.startMin);
+          const end = Number(lesson.date.endMin);
+          console.log("day,start,end", d, start, end);
           if (Number.isNaN(d) || d < 1 || d > 7) return 'יום בשבוע לא תקין';
-          if (Number.isNaN(h) || h < 0 || h > 23) return 'שעה לא תקינה';
+          if (Number.isNaN(start) || start < 0 || start > 23 * 60) return 'שעה התחלה לא תקינה';
+          if (Number.isNaN(end) || end < start || end > 23 * 60) return 'שעת סיום לא תקינה';
 
           if (lesson.list_trainees.length > Number(lesson.max_trainees)) {
           return 'מספר המשתתפים חורג מהמקסימום';
@@ -292,21 +326,22 @@ const EditLesson = () => {
       </div>
 
       <div className={styles.formControl}>
-        <label>שעה:</label>
-        <div className="time-inputs">
-          <span className={styles.timeSeparator}>00:</span>
-          <input
-            type="number"
-            name="hh"
-            value={lesson.date.hh}
-            onChange={handleChange}
-            min="0"
-            max="23"
-            placeholder="שעה"
-            disabled={localStorage.getItem('role') !== 'מנהל'}
-          />
-          <label style={{color: "red"}}>{error.date.hh}</label>
-        </div>
+        <label>שעת התחלה:</label>
+        <input
+          type="time"
+          value={toHHMM(lesson.date.startMin)}
+          onChange={(e) => handleTimeChange('start', e.target.value)}
+          disabled={localStorage.getItem('role') !== 'מנהל'}
+        />
+      </div>
+      <div className={styles.formControl}>
+        <label>שעת סיום:</label>
+        <input
+          type="time"
+          value={toHHMM(lesson.date.endMin)}
+          onChange={(e) => handleTimeChange('end', e.target.value)}
+          disabled={localStorage.getItem('role') !== 'מנהל'}
+        />
       </div>
 
       <h4>מתאמנים שנבחרו: {lesson.list_trainees?.length || 0}</h4>

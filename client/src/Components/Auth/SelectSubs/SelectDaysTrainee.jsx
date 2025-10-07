@@ -1,134 +1,205 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { getAllLesson } from "../../../WebServer/services/lesson/functionsLesson";
 import "./SelectSub.css";
 import { toast } from "../../../ALERT/SystemToasts";
 
-const SelectDaysForTrainee = ({ selectedSubs,selected = [], setSelected}) => {
-  const [tableData, setTableData] = useState([]);
-  const [lessonsThisMonth, setLessonsThisMonth] = useState([]);
-  useEffect(()=>console.log("lessonsThisMonth", lessonsThisMonth),[lessonsThisMonth]);
-  const [lessonsNextMonth, setLessonsNextMonth] = useState([]);
-  useEffect(()=>console.log("lessonsNextMonth", lessonsNextMonth),[lessonsNextMonth]);
+const monthLabel = (d) =>
+  `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+
+const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי"]; // מציגים רק א-ה
+
+const toHHMM = (m) => {
+  const mm = Math.max(0, Math.min(24 * 60, m || 0));
+  const h = Math.floor(mm / 60);
+  const min = mm % 60;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+};
+const getStart = (l) =>
+  l?.date?.startMin ?? ((l?.date?.hh ?? 8) * 60);
+const getEnd = (l) =>
+  l?.date?.endMin ?? (getStart(l) + 45);
+
+const SelectDaysForTrainee = ({ selectedSubs, selected = [], setSelected, selectedMonth = "current", setSelectedMonth }) => {
+  const [allLessons, setAllLessons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
 
-  const generateTimeSlots = (start, end) => {
-    const slots = [];
-    for (let i = start; i < end; i++) {
-      const left = `${String(i).padStart(2,'0')}:45`;
-      const right = `${String(i).padStart(2,'0')}:00`;
-      slots.push(`${left} - ${right}`);
-    }
-    return slots;
-  };
-
-  const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'/*,'שישי','שבת'*/]
-  const hours = generateTimeSlots(8, 23);
-  const getDayName = (i) => days[i];
-  const getHourSlot = (hh) => `${String(hh).padStart(2, '0')}:45 - ${String(hh).padStart(2, '0')}:00`;
-
-  const loadData = async () => {
-        const resL = await getAllLesson();
-        if(!resL.ok) {
-          setTableData(tableData);
-          return toast.error("שגיאה בטעינת השיעורים");
-        }
-        const lessons = resL.lessons;
-        let table = [];
-        for (const lesson of lessons) {
-          const { day, hh, month, year } = lesson.date;          // month = 1..12
-          const today = new Date();
-          if (day >= 1 && day <= 5) {
-            if (month === today.getMonth() + 2 && year === today.getFullYear()) {
-              table.push(lesson);
-            }
-          }
-        }
-        setTableData(table);
-    };
-  
-  useEffect(() => { loadData(); }, [selectedSubs]);
-  useEffect(() =>console.log("selected", selected), [selected]);
-  const toggleSelect = (lesson) => {
-    console.log("toggleSelect", selectedSubs, selected);
-    for(let i =0; i < selected.length; i++) {
-      if(selected[i]._id == lesson._id)
-      {
-        setSelected(selected.filter((l) => l._id !== lesson._id));
-        return;
+  // רדיו: החודש הנוכחי / הבא
+  const [startChoice, setStartChoice] = useState("current"); // 'current' | 'next'
+  useEffect(() => {setSelected([]); setSelectedMonth(startChoice)}, [startChoice]);
+  // טען את כל השיעורים פעם אחת
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await getAllLesson();
+        if (!res?.ok) throw new Error(res?.message || "load failed");
+        setAllLessons(Array.isArray(res.lessons) ? res.lessons : []);
+        setErr(null);
+      } catch (e) {
+        setErr("שגיאה בטעינת השיעורים");
+        toast.error("שגיאה בטעינת השיעורים");
+      } finally {
+        setLoading(false);
       }
+    };
+    load();
+  }, [selectedSubs]); // אם סוג המנוי משתנה—רענון
+
+  // חישוב חודש נוכחי/בא
+  const now = useMemo(() => new Date(), []);
+  const next = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d;
+  }, []);
+
+  // פיצול לפי חודש/שנה וסינון לימים א-ה
+  const { lessonsThisMonth, lessonsNextMonth } = useMemo(() => {
+    const curM = now.getMonth() + 1;
+    const curY = now.getFullYear();
+    const nxtM = next.getMonth() + 1;
+    const nxtY = next.getFullYear();
+
+    const normalizeDay = (d) => (d >= 0 && d <= 6 ? d + 1 : d); // אם נשמר 0..6
+    const inWeek = (d) => d >= 1 && d <= 5;
+
+    const cur = [];
+    const nxt = [];
+    for (const l of allLessons) {
+      if (!l?.date) continue;
+      const day = normalizeDay(Number(l.date.day));
+      const month = Number(l.date.month);
+      const year = Number(l.date.year);
+      if (!inWeek(day)) continue;
+
+      if (month === curM && year === curY) cur.push(l);
+      if (month === nxtM && year === nxtY) nxt.push(l);
     }
-    if(selectedSubs.times_week > selected.length)
+
+    // מיון: יום->שעת התחלה
+    const sortFn = (a, b) =>
+      Number(a.date.day) - Number(b.date.day) ||
+      getStart(a) - getStart(b);
+
+    cur.sort(sortFn);
+    nxt.sort(sortFn);
+    return { lessonsThisMonth: cur, lessonsNextMonth: nxt };
+  }, [allLessons, now, next]);
+
+  // בחירה/ביטול בחירה
+  const toggleSelect = (lesson) => {
+    const exists = selected.some((l) => String(l._id) === String(lesson._id));
+    if (exists) {
+      setSelected(selected.filter((l) => String(l._id) !== String(lesson._id)));
+      return;
+    }
+    if (selectedSubs?.times_week > selected.length) {
       setSelected([...selected, lesson]);
-    else return toast.warn('הגעת למקסימום השיעורים המותרים לפי המנוי');
+    } else {
+      toast.warn("הגעת למקסימום השיעורים המותרים לפי המנוי");
+    }
   };
 
-  if (loading) return <div className="subs-selection-container">טוען שיעורים</div>;
+  const activeLessons =
+    startChoice === "current" ? lessonsThisMonth : lessonsNextMonth;
+
+  if (loading)
+    return <div className="subs-selection-container">טוען שיעורים…</div>;
   if (err) return <div className="subs-selection-container error">{err}</div>;
-  
+
   return (
-    <div>
-      <div>
-        {tableData.length > 0 && <h3>שיעורים לחודש הזה</h3>}
-        <div className="subs-selection-container">
-          {tableData.map((lesson) => {
-            
-            const isSelected = selected.filter(l => l._id === lesson._id).length > 0;            
-            return (
-              <div
-                key={lesson._id}
-                className={`sub-card ${isSelected ? "selected" : ""}`}
-                onClick={() => toggleSelect(lesson)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {if (e.key === "Enter" || e.key === " ") toggleSelect(lesson);}}
-              >
-              <div style={{ display: 'flex', gap: 4 }}><span>🧑‍🏫</span><span>שיעור:</span><span>{lesson.name}</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>🕒</span><span>שעה:</span><span>{lesson.date.hh}:00</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>📅</span><span>יום:</span><span>{days[lesson.date.day]}</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>👨‍👨‍👦‍👦</span><span>משתתפים:</span><span>{lesson.list_trainees?.length ?? 0}</span></div>
-              <button
-                type="button"
-                className="select-btn"
-                onClick={(e) => { e.stopPropagation(); toggleSelect(lesson); }}
-              >
-                {isSelected ? "✅ נבחר" : "בחר שיעור"}
-              </button>
-            </div>
-          );
-        })}
-        </div>
+    <div className="subs-root">
+      {/* רדיו התחלה מחודש נוכחי/בא */}
+      <div className="start-radio">
+        <label className="radio-title">מתי להתחיל את המנוי?</label>
+        <label className="radio-opt">
+          <input
+            type="radio"
+            name="startMonth"
+            value="current"
+            checked={startChoice === "current"}
+            onChange={() => setStartChoice("current")}
+          />
+          <span>מהחודש הנוכחי ({monthLabel(now)})</span>
+        </label>
+        <label className="radio-opt">
+          <input
+            type="radio"
+            name="startMonth"
+            value="next"
+            checked={startChoice === "next"}
+            onChange={() => setStartChoice("next")}
+          />
+          <span>מהחודש הבא ({monthLabel(next)})</span>
+        </label>
       </div>
 
-      <div>
-        {lessonsNextMonth.length > 0 && <h3>שיעורים לחודש הבא</h3>}
-        <div className="subs-selection-container">
-          {lessonsNextMonth.length > 0 && lessonsNextMonth.map((lesson) => {
-            const isSelected = selected.filter(l => l._id === lesson._id).length > 0;
-            return (
-              <div
-                key={lesson._id}
-                className={`sub-card ${isSelected ? "selected" : ""}`}
-                onClick={() => toggleSelect(lesson)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {if (e.key === "Enter" || e.key === " ") toggleSelect(lesson);}}
-              >
-              <div style={{ display: 'flex', gap: 4 }}><span>🧑‍🏫</span><span>שיעור:</span><span>{lesson.name}</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>🕒</span><span>שעה:</span><span>{lesson.date.hh}:00</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>📅</span><span>יום:</span><span>{days[lesson.date.day]}</span></div>
-              <div style={{ display: 'flex', gap: 4 }}><span>👨‍👨‍👦‍👦</span><span>משתתפים:</span><span>{lesson.list_trainees?.length ?? 0}</span></div>
+      {/* כותרת */}
+      {activeLessons.length > 0 && (
+        <h3 className="subs-section-title">
+          {startChoice === "current" ? "שיעורים לחודש הזה" : "שיעורים לחודש הבא"}
+        </h3>
+      )}
+
+      {/* רשת השיעורים */}
+      <div className="subs-selection-container">
+        {activeLessons.map((lesson) => {
+          const isSelected = selected.some(
+            (l) => String(l._id) === String(lesson._id)
+          );
+          const dayIdx = Math.max(1, Math.min(5, Number(lesson?.date?.day))) - 1;
+
+          return (
+            <div
+              key={lesson._id}
+              className={`sub-card ${isSelected ? "selected" : ""}`}
+              onClick={() => toggleSelect(lesson)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") toggleSelect(lesson);
+              }}
+            >
+              <div className="sub-row">
+                <span>🧑‍🏫</span>
+                <span className="muted">שיעור:</span>
+                <span className="strong">{lesson.name}</span>
+              </div>
+
+              <div className="sub-row">
+                <span>📅</span>
+                <span className="muted">יום:</span>
+                <span>{days[dayIdx]}</span>
+              </div>
+
+              <div className="sub-row">
+                <span>🕒</span>
+                <span className="muted">שעה:</span>
+                <span>
+                  {toHHMM(getStart(lesson))}–{toHHMM(getEnd(lesson))}
+                </span>
+              </div>
+
+              <div className="sub-row">
+                <span>👥</span>
+                <span className="muted">משתתפים:</span>
+                <span>{lesson?.list_trainees?.length ?? 0}</span>
+              </div>
+
               <button
                 type="button"
                 className="select-btn"
-                onClick={(e) => { e.stopPropagation(); toggleSelect(lesson); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelect(lesson);
+                }}
               >
                 {isSelected ? "✅ נבחר" : "בחר שיעור"}
               </button>
             </div>
           );
         })}
-        </div>
       </div>
     </div>
   );

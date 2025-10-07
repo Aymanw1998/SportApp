@@ -36,19 +36,25 @@ export function calcProratedQuote({
   roundTo = 1,
   minFraction = 0,
 }) {
-    console.log("i am in calcProratedQuote func")
   const start = (startDate instanceof Date) ? startDate : new Date(startDate);
+  if(start.getTime() > new Date().getTime()) {
+    
+  }
   const periodEnd = endOfLastMonth(start, months);       // סוף החודש האחרון
   const fullStart = firstOfMonth(start);                 // תחילת החודש הראשון
-  console.log({start: fullStart}, {end:periodEnd})
   const daysSet = new Set(daysOfWeek); // [0..6]
   const meetingsFull   = countMeetingsBetween(fullStart,  periodEnd, daysSet);
   const meetingsActual = countMeetingsBetween(start,      periodEnd, daysSet);
-    console.log(meetingsFull, meetingsActual);
   // הגנה מתמטית
-  if (meetingsFull <= 0) {
+  if (meetingsFull <= 0 && start.getMonth() === new Date().getMonth()) {
     return {
       price: 0, fraction: 0,
+      meetingsFull, meetingsActual,
+      period: { start, end: periodEnd }
+    };
+  } else if(start.getTime() > new Date().getTime()) {
+    return {
+      price: planPrice, fraction: 1,
       meetingsFull, meetingsActual,
       period: { start, end: periodEnd }
     };
@@ -58,7 +64,9 @@ export function calcProratedQuote({
   if (minFraction > 0) fraction = Math.max(fraction, minFraction);
 
   // עיגול למחיר נוח (ברירת מחדל לש"ח שלם)
+  console.log("fraction before round", planPrice, fraction);
   const raw = planPrice * fraction;
+  console.log("roundTo", roundTo, raw);
   const price = Math.round(raw / roundTo) * roundTo;
 
   return {
@@ -66,6 +74,6 @@ export function calcProratedQuote({
     fraction,
     meetingsFull,
     meetingsActual,
-    period: { start: fullStart, end: periodEnd }
+    period: { start, end: periodEnd }
   };
 }

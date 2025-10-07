@@ -247,7 +247,7 @@ try {
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    logWithSource(`err ${error}`.red);
+    logWithSource(`err ${err}`.red);
     return res.status(500).json({ code: 'SERVER_ERROR', message: err.message });
   }
 };
@@ -284,7 +284,7 @@ const getOneU = async (req, res) => {
     if (!user) return res.status(404).json({ ok: false, message: 'לא נמצא' });
     return res.status(200).json({ ok: true, user: sanitize(user) });
   } catch (err) {
-    logWithSource(`err ${error}`.red);
+    logWithSource(`err ${err}`.red);
     return res.status(500).json({ ok: false, message: err.message });
   }
 };
@@ -364,7 +364,7 @@ const deleteU = async (req, res) => {
     if (!deleted) return res.status(404).json({ ok: false, message: 'User not found' });
         return res.status(200).json({ ok: true, removed: true });
   } catch (err) {
-    logWithSource(`err ${error}`.red);
+    logWithSource(`err ${err}`.red);
     return res.status(500).json({ ok: false, message: err.message });
   }
 };

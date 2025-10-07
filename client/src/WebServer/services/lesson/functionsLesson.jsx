@@ -7,7 +7,7 @@ export const getAllLesson = async() => {
         if(![200,201].includes(status) || !data.ok) throw new Error ('לא קיים שיעורים במערכת');
         return {ok: true, lessons: data.lessons || data.schema || []};
     } catch(err) {    
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -17,7 +17,7 @@ export const getOneLesson = async(_id) => {
         if(![200,201].includes(status) || !data.ok) throw new Error ('השיעור לא קיים');
         return {ok: true, lesson: data.lesson || data.schema};
     } catch(err) {    
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -32,7 +32,7 @@ export const createLesson = async(payload, {confirm = true} = {}) => {
         console.log("create lesson", payload);
         const res = await api.post('/lesson', payload);
         console.log(res);
-        if(![200,201].includes(res.status) || !res.data.ok) throw new Error ('השיעור לא נוצר');
+        if(![200,201].includes(res.status) || !res.data.ok) throw new Error (data?.message || 'השיעור לא נוצר');
         return {ok: true, lesson: res.data.lesson || res.data.schema};
     } catch(err) {
         console.error(err);
@@ -48,10 +48,11 @@ export const updateLesson = async(_id, payload, {confirm = true} = {}) => {
             }
         }
         const {data, status} = await api.put(`/lesson/${encodeURIComponent(_id)}`, payload);
-        if(![200,201].includes(status) || !data.ok) throw new Error ('השיעור לא עודכן');
+        console.log("update lesson", status, data);
+        if(![200,201].includes(status) || !data.ok) throw new Error (data?.message || 'השיעור לא עודכן');
         return {ok: true, lesson: data.lesson || data.schema};
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -65,10 +66,10 @@ export const deleteLesson = async(_id, {confirm = true} = {}) => {
         }
         const {data, status} = await api.delete(`/lesson/${encodeURIComponent(_id)}`);
         console.log("delete lesson", status, data);
-        if(![200,201].includes(status) || !data.ok) throw new Error ('השיעור לא נמחק');
+        if(![200,201].includes(status) || !data.ok) throw new Error (data?.message || 'השיעור לא נמחק');
         return {ok: true, lesson: null};
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -78,10 +79,10 @@ export async function addToList(lessonId, traineeIds = []) {
         const { data, status } = await api.post(`/lesson/addToList/${encodeURIComponent(lessonId)}`, {
         list_trainees: traineeIds,
         });
-        if (![200,201].includes(status)) throw new Error('הוסף מתאמן לשיעור נכשלה');
+        if (![200,201].includes(status)) throw new Error(data?.message || 'הוסף מתאמן לשיעור נכשלה');
         return {ok: true, lessons: data.lessons || data.schema};
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -91,9 +92,30 @@ export async function removeFromList(lessonId, traineeIds = []) {
             id: lessonId,
             list_trainees: traineeIds,
         });
-        if (![200,201].includes(status)) throw new Error('הסרת מתאמן משיעור נכשלה');
+        if (![200,201].includes(status)) throw new Error(data?.message || 'הסרת מתאמן משיעור נכשלה');
         return {ok: true, lessons: data.lessons || data.schema};
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
+    }
+}
+
+export async function copyLessonsMonth(params = {}) {
+    try {
+        const res = await api.post(`/lesson/copy-month`);
+        console.log("copyLessonsMonth", res);
+        const {data} = await res;
+        return { status: res.status, ok: true, ...data };
+    } catch (err) {
+        return { status: err.status, ok:false, message: err.message || 'bad response' };
+    }
+}
+export async function deleteLessonsPerMonth(month, year) {
+    try {
+        const res = await api.delete(`/lesson/delete-perMonth/${month}/${year}`);
+        console.log("deleteLessonsPerMonth", res);
+        const {data} = await res;
+        return { status: res.status, ok: true, ...data };
+    } catch (err) {
+        return { status: err.status, ok:false, message: err.message || 'bad response' };
     }
 }

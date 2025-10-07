@@ -6,7 +6,7 @@ export const getAll = async() => {
         if(![200,201].includes(status) || !data?.ok) throw new Error('לא קיים סוגי שיעורים במערכת');
         return {ok: true, trainings: data.trainings || []}
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -20,7 +20,7 @@ export const getOne = async(idOrName) => {
         if(![200,201].includes(status) || !data?.ok) throw new Error('סוג שיעור אינו קיים');
         return {ok: true, training: data.training}
     } catch(err){
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -43,7 +43,7 @@ export const create = async(payload, {confirm = true} = {}) => {
         if (![200,201].includes(status) || !data?.ok) throw new Error('סוג שיעור לא נוצר');
         return {ok: true, training: data.training}
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -70,7 +70,7 @@ export const update= async(idOrName, patch,{confirm = true} = {}) => {
         if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'סוג שיעור לא עודכן');
         return {ok: true, training: data.training}
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }
 
@@ -90,6 +90,6 @@ export const deleteT= async(idOrName,{confirm = true} = {}) => {
         if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'סוג שיעור לא נמחק');
         return {ok: true, training: null}
     } catch(err) {
-        return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+        return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
     }
 }

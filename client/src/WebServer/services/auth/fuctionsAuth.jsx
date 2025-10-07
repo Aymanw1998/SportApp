@@ -27,11 +27,11 @@ function markSignedIn(user, accessToken, expirationTime) {
 export async function register(payload) {
   try{
   const { data, status } = await api.post('/auth/register/', payload, { withCredentials: true });
-  if (![200,201].includes(status)) throw new Error(data?.message || 'Register failed');
+  if (![200,201].includes(status)) throw new Error(data?.message || 'ההרשמה נכשילה');
   return {ok: true, message: data.message || 'User registered successfully'};
   }catch(err){
     console.error('Register error:', err?.response?.data || err.message);
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 }
 
@@ -39,7 +39,7 @@ export async function register(payload) {
 export async function login(tz, password) {
   const { data, status } = await api.post('/auth/login', { tz, password }, { withCredentials: true });
   console.log("login", status, data);
-  if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'Login failed');
+  if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'ההתחברות נכשילה');
 
   const { accessToken, expirationTime, user } = data;
   markSignedIn(user, accessToken, expirationTime);
@@ -49,7 +49,7 @@ export async function login(tz, password) {
 // רענון חד-פעמי ידני (בד"כ לא צריך לקרוא ידנית; ה־interceptor/‏PublicOnly עושה את זה)
 export async function refresh() {
   const { data, status } = await axios.post(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true });
-  if (![200,201].includes(status) || !data?.ok || !data?.accessToken) throw new Error('Refresh failed');
+  if (![200,201].includes(status) || !data?.ok || !data?.accessToken) throw new Error('ההתחברות מחדש נכשלה');
   setAuthTokens(data.accessToken, data.expirationTime);
   scheduleAccessRefresh(data.accessToken);
   return { accessToken: data.accessToken, expirationTime: data.expirationTime };
@@ -59,7 +59,7 @@ export async function refresh() {
 export async function getMe() {
   try{
   const { data, status } = await api.get('/auth/me');
-  if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'Not authenticated');
+  if (![200,201].includes(status) || !data?.ok) throw new Error(data?.message || 'אין זהות משתמש');
   return data.user; // הקומפוננטות אצלך מצפות ל-user ישירות
   }catch(err){
     console.warn("err getme", err);

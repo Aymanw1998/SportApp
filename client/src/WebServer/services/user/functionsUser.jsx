@@ -19,7 +19,7 @@ export const changeStatus = async (tz, from, to) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error('משתמש לא שונה סטטוס');
     return { ok: true, message: data.message};
   }catch(err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   } 
 }
 /** כל המשתמשים */
@@ -29,7 +29,7 @@ export const getAllUser = async (rooms = null) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error('לא קיים משתמשים');
     return {ok: true, users: data.users};
   } catch(err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -41,7 +41,7 @@ export const getUserById = async (tzOrId, {publicMode = false} = {}) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error('לא קיים משתמש בעל מזהה' + tzOrId);
     return {ok: true, user: data.user};
   } catch (err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -58,7 +58,7 @@ export const createUser = async (payload, {confirm = true} = {}) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error('לא נוצר משתמש');
     return { ok: true, user: extractUser(data) };
   } catch (err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -75,7 +75,7 @@ export const updateUser = async (tz, petch, {confirm = true} = {}) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error('משתמש לא עודכן');
     return { ok: true, user: extractUser(data.user) };
   } catch (err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -93,7 +93,7 @@ export const deleteUser = async (tz, from, {confirm = true} = {}) => {
     if (![200,201].includes(status) || !data?.ok) throw new Error ('משתמש לא נמחק');
     return { ok: true, user: null };
   } catch (err) {
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -106,7 +106,7 @@ export const addSub = async (userId, subId, start, end) => {
     return { ok: true, user: extractUser(data.data) };
   } catch (err) {
     const msg = err?.response?.data?.message || err.message || "שגיאה בהוספת מנוי";
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
 
@@ -121,6 +121,6 @@ export const removeSub = async (_userId) => {
     return { ok: true, user: extractUser(data) };
   } catch (err) {
     const msg = err?.response?.data?.message || err.message || "שגיאה בהסרת מנוי";
-    return {ok: false, message: err.message || 'נוצר שגיאה בתהליך'};
+    return {ok: false, message: err.response.data.message || err.message || 'נוצר שגיאה בתהליך'};
   }
 };
