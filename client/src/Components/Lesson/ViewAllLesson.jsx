@@ -215,7 +215,7 @@ function ScheduleView({ lessons, canEdit, currentMonth, currentYear, showMyLesso
                onMouseLeave={() => setTooltip?.({ show:false })}
           >
             <p><strong>שיעור:</strong> {l.name}</p>
-            <p><strong>יום:</strong> {dayNames[normalizeDay(l.date.day)-1]}</p>
+            <p><strong>יום:</strong> {dayNames[l.date.day-1]}</p>
             <p><strong>שעה:</strong> {toHHMM(getStart(l))}–{toHHMM(getEnd(l))}</p>
             {/* <p><strong>מאמן:</strong> {trainerNames[l.trainer] || 'טוען...'}</p> */}
           </div>
