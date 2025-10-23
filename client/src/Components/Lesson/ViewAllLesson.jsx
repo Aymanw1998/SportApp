@@ -18,11 +18,6 @@ const toHHMM = (min) => {
   return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
 };
 const minuteToPx = (min) => Math.max(0, Math.min((min ?? BASE_MIN) - BASE_MIN, END_MIN - BASE_MIN));
-const normalizeDay = (d) => {
-  // תמיכה אם שמור כ-0..6 (אף-שבת): נהפוך ל-1..7
-  if (Number.isInteger(d) && d >= 0 && d <= 6) return d + 1;
-  return d;
-};
 const getStart = (l) => l?.date?.startMin ?? ((l?.date?.hh ?? 8) * 60);
 const getEnd   = (l) => l?.date?.endMin   ?? (getStart(l) + 45);
 
@@ -30,21 +25,22 @@ const getEnd   = (l) => l?.date?.endMin   ?? (getStart(l) + 45);
 function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLessons, navigate, onReload, onHover }) {
   // קיבוץ לימים (א׳–ה׳)
   const byDay = useMemo(() => {
-    const map = {1:[],2:[],3:[],4:[],5:[]};
+    const map = {1:[],2:[],3:[],4:[],5:[]}; // 1=א׳ .. 5=ה׳ (+6 לשמור מקום)
     const uid = localStorage.getItem('user_id');
 
     for (const l of (lessons || [])) {
       if (!l?.date) continue;
       const month = Number(l.date.month), year = Number(l.date.year);
-      let day     = normalizeDay(Number(l.date.day));
+      let day     = Number(l.date.day);
 
       if (month !== currentMonth || year !== currentYear) continue;
       if (!(day >= 1 && day <= 5)) continue;
 
-      const isMine = String(l.trainer) === String(uid) ||
-                     (l.list_trainees || []).map(String).includes(String(uid));
+      const isMine = String(l.trainer) === String(uid) || (l.list_trainees || []).map(String).includes(String(uid));
+      console.log("showMyLessons check", day, showMyLessons, isMine);
       if (!showMyLessons || (showMyLessons && isMine)) map[day].push(l);
     }
+    console.log("byDay map", map);
     return map;
   }, [lessons, currentMonth, currentYear, showMyLessons]);
 
@@ -99,7 +95,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
 
         {/* חמשת הימים */}
         {dayNames.map((_dn, idx) => {
-          const day = idx + 1;
+          const day = idx ;
           return (
             <div
               key={day}
@@ -138,7 +134,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
                     draggable={canEdit}
                     onClick={(ev) => { ev.stopPropagation(); navigate(`/lessons/${l._id}`); }}
                     onDragStart={(e) => e.dataTransfer.setData('lesson-id', l._id)}
-                    onMouseEnter={() => onHover?.(l, `${toHHMM(getStart(l))}–${toHHMM(getEnd(l))}`, dayNames[day-1])}
+                    onMouseEnter={() => onHover?.(l, `${toHHMM(getStart(l))}–${toHHMM(getEnd(l))}`, dayNames[day])}
                     onMouseMove={(e) => onHover?.('__move__', e.clientX, e.clientY)}
                     onMouseLeave={() => onHover?.()}
                   >
@@ -183,11 +179,10 @@ function ScheduleView({ lessons, canEdit, currentMonth, currentYear, showMyLesso
       .filter(l => l?.date?.month === currentMonth && l?.date?.year === currentYear)
       .filter(l => {
         if (!showMyLessons) return true;
-        const isMine = String(l.trainer) === String(uid) ||
-                       (l.list_trainees || []).map(String).includes(String(uid));
+        const isMine = String(l.trainer) === String(uid) || (l.list_trainees || []).map(String).includes(String(uid));
         return isMine;
       })
-      .sort((a,b) => (normalizeDay(a.date.day) - normalizeDay(b.date.day)) || (getStart(a) - getStart(b)));
+      .sort((a,b) => (a.date.day - b.date.day) || (getStart(a) - getStart(b)));
   }, [lessons, currentMonth, currentYear, showMyLessons]);
 
   return (
@@ -209,13 +204,13 @@ function ScheduleView({ lessons, canEdit, currentMonth, currentYear, showMyLesso
                  <>
                    <div style={{display:'flex',gap:4}}><span>🧑‍🏫</span><span>שיעור:</span><span>{l.name}</span></div>
                    <div style={{display:'flex',gap:4}}><span>🕒</span><span>שעה:</span><span>{toHHMM(getStart(l))}–{toHHMM(getEnd(l))}</span></div>
-                   <div style={{display:'flex',gap:4}}><span>📅</span><span>יום:</span><span>{dayNames[normalizeDay(l.date.day)-1]}</span></div>
+                   <div style={{display:'flex',gap:4}}><span>📅</span><span>יום:</span><span>{dayNames[(l.date.day)-1]}</span></div>
                  </>
                )})}
                onMouseLeave={() => setTooltip?.({ show:false })}
           >
             <p><strong>שיעור:</strong> {l.name}</p>
-            <p><strong>יום:</strong> {dayNames[normalizeDay(l.date.day)-1]}</p>
+            <p><strong>יום:</strong> {dayNames[(l.date.day)-1]}</p>
             <p><strong>שעה:</strong> {toHHMM(getStart(l))}–{toHHMM(getEnd(l))}</p>
             {/* <p><strong>מאמן:</strong> {trainerNames[l.trainer] || 'טוען...'}</p> */}
           </div>

@@ -68,7 +68,7 @@ const SelectDaysForTrainee = ({ selectedSubs, selected = [], setSelected, select
     const nxt = [];
     for (const l of allLessons) {
       if (!l?.date) continue;
-      const day = normalizeDay(Number(l.date.day));
+      const day = Number(l.date.day);
       const month = Number(l.date.month);
       const year = Number(l.date.year);
       if (!inWeek(day)) continue;
