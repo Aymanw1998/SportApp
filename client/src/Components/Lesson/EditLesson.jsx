@@ -110,7 +110,7 @@ const EditLesson = () => {
         const l = resL.lesson;
         console.log("l", l);
         if (l) {
-          setLesson(l);
+          setLesson({...l, list_trainees: l.list_trainees.filter(t => t != null && t != undefined)});
         } else {
           navigate(-1);
         }

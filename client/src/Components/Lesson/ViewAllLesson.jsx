@@ -278,7 +278,18 @@ export default function ViewAllLesson() {
       const res = await getAllLesson();
       console.log("all lessons", res);
       if (!res?.ok) throw new Error(res?.message || 'Load failed');
-      setLessons(Array.isArray(res.lessons) ? res.lessons : []);
+      if (Array.isArray(res.lessons)) {
+        const cleaned = res.lessons.map(lesson => ({
+          ...lesson,
+          list_trainees: Array.isArray(lesson.list_trainees)
+            ? lesson.list_trainees.filter(t => t != null && t != undefined)
+            : []
+        }));
+        setLessons(cleaned);
+      } else {
+        setLessons([]);
+      }
+
     } catch (e) {
       toast.error('שגיאה בטעינת השיעורים');
     } finally {
