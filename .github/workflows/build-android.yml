@@ -1,0 +1,43 @@
+name: Build Android (Capacitor)
+
+on:
+  workflow_dispatch:  # הרצה ידנית
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps (client)
+        run: |
+          cd client
+          npm ci
+
+      - name: Build React
+        run: |
+          cd client
+          npm run build
+
+      - name: Add & Sync Capacitor (android)
+        run: |
+          cd client
+          npm i @capacitor/core @capacitor/cli
+          npx cap init "SportApp" com.sportapp.app --web-dir=build --skip-prompts
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd client/android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sportapp-debug.apk
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
