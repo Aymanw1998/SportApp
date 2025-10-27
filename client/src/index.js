@@ -5,11 +5,13 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { ConfirmProvider } from "./Components/Provides/ConfirmContext";
 import { ToastProvider, SystemStatusWatcher, SystemEventSubscriber, StatusBadge, useToast, toast } from "./ALERT/SystemToasts";
+import { initApiBase } from "./WebServer/services/api";
 
 // לוג שגיאות גלובלי
 window.onerror = (m, s, l, c, e) => console.error("[window.onerror]", m, e);
 window.onunhandledrejection = (e) => console.error("[unhandledrejection]", e.reason || e);
 
+initApiBase().then(() => {}).catch((err) => {console.error("Error initializing API base URL:", err);});
 // בדיקת עשן
 function DevToastPing() {
   const { push } = useToast();

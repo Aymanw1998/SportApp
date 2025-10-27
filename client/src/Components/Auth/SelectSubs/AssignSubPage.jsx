@@ -101,7 +101,7 @@ export default function AssignSubPage() {
         console.log("lesson.list_trainees1", lesson.list_trainees)
         lesson.list_trainees.push(user1._id);
         console.log("lesson.list_trainees2", lesson.list_trainees)
-        const res3 = await addToList(lesson._id, [user1.id]);
+        const res3 = await addToList(lesson._id, [user1._id]);
         if(!res3.ok) throw new Error(res1.message);
       }
       navigate('/dashboard/get', { replace: true });

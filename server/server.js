@@ -34,7 +34,10 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : [
       'http://localhost:3000',
       'https://fitness-360.onrender.com', // הקליינט בפרודקשן
+      'http://10.0.0.30:3000',
+      'http://192.168.169.221:3000',
       // הוסף כאן דומיינים נוספים אם יש
+      /^http:\/\/10\.0\.0\.\d+3000$/, // רשת LAN לדיבוג
     ];
 
 const allowedOrigins = new Set(ALLOWED_ORIGINS);

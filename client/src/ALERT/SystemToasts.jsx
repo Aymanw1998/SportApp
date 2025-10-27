@@ -206,6 +206,7 @@ function ToastItem({ t, onClose }) {
 // ---------- Watcher: Health + Token ----------
 export function SystemStatusWatcher({ options }) {
   const { push } = useToast();
+  console.log("SystemStatusWatcher options:", options);
   const healthUrl = options?.healthUrl || "/api/health";
   const intervalMs = options?.intervalMs || 30000;
   const getToken = options?.getToken || (() => (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null));
@@ -216,6 +217,7 @@ export function SystemStatusWatcher({ options }) {
     let fails = 0;
     const check = async () => {
       try {
+        console.log(api);
         const r = await api.get(healthUrl);
         if (!r.data.ok) throw new Error(String(r.status));
         emitHealth(true);

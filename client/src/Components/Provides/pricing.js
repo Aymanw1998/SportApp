@@ -9,10 +9,12 @@ function firstOfMonth(d) {
 }
 
 function countMeetingsBetween(start, end, daysOfWeekSet) {
+  console.log("countMeetingsBetween", start, end, daysOfWeekSet);
   let cnt = 0;
   const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   while (cur <= end) {
-    if (daysOfWeekSet.has(cur.getDay())) cnt++;
+    if (daysOfWeekSet.has(cur.getDay()+1)) cnt++;
+    console.log("  checking", cur.toISOString(), "day", cur.getDay()+1, "cnt", cnt);
     cur.setDate(cur.getDate() + 1);
   }
   return cnt;
@@ -41,10 +43,14 @@ export function calcProratedQuote({
     
   }
   const periodEnd = endOfLastMonth(start, months);       // סוף החודש האחרון
+  console.log("periodEnd", periodEnd);
   const fullStart = firstOfMonth(start);                 // תחילת החודש הראשון
+  console.log("fullStart", fullStart);
   const daysSet = new Set(daysOfWeek); // [0..6]
+  console.log("daysSet", daysSet);
   const meetingsFull   = countMeetingsBetween(fullStart,  periodEnd, daysSet);
   const meetingsActual = countMeetingsBetween(start,      periodEnd, daysSet);
+  console.log("meetingsFull/Actual", meetingsFull, meetingsActual);
   // הגנה מתמטית
   if (meetingsFull <= 0 && start.getMonth() === new Date().getMonth()) {
     return {
@@ -62,13 +68,13 @@ export function calcProratedQuote({
 
   let fraction = meetingsActual / meetingsFull;
   if (minFraction > 0) fraction = Math.max(fraction, minFraction);
-
+  console.log("raw fraction", fraction);
   // עיגול למחיר נוח (ברירת מחדל לש"ח שלם)
   console.log("fraction before round", planPrice, fraction);
   const raw = planPrice * fraction;
   console.log("roundTo", roundTo, raw);
   const price = Math.round(raw / roundTo) * roundTo;
-
+  console.log("final price", price);
   return {
     price,
     fraction,

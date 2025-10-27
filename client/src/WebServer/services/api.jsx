@@ -1,9 +1,10 @@
 // src/WebServer/services/api.js
 import axios from 'axios';
 import { markSessionExpired } from '../utils/sessionMessages'; // אופציונלי: מציג הודעת "פג תוקף"
+import { getApiBaseUrl } from './apiBase';
 
-export const API_BASE_URL =
-  `${process.env.REACT_APP_SERVER_URI || ''}`.replace(/\/+$/, '') + '/api';
+export const API_BASE_URL = getApiBaseUrl();
+  //`${process.env.REACT_APP_SERVER_URI || ''}`.replace(/\/+$/, '') + '/api';
 
 // state פנימי של המודול
 let accessToken = localStorage.getItem('accessToken') || null;
@@ -31,17 +32,26 @@ export function getAuthToken() {
 }
 
 export const publicApi = axios.create({
-  baseURL: API_BASE_URL,
+  // baseURL: API_BASE_URL+ '/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: false,
   timeout: 15000,
 });
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  // baseURL: API_BASE_URL+ '/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: false, // refresh נעשה בקריאה נפרדת עם credentials:true
   timeout: 15000,
 });
+
+let inited = false;
+export const initApiBase = async () => {
+  if (inited) return;
+  const baseUrl = await API_BASE_URL;
+  api.defaults.baseURL = baseUrl + '/api';
+  publicApi.defaults.baseURL = baseUrl + '/api';
+  inited = true;
+}
 
 // יציאה קשיחה + סנכרון טאבים
 function hardResetToLogin(reason = 'פג תוקף ההתחברות, אנא התחבר/י שוב') {
@@ -114,7 +124,7 @@ api.interceptors.response.use(
       isRefreshing = true;
       try {
         // refresh עם cookie httpOnly → חייב credentials:true
-        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
+        const { data } = await axios.post(`${API_BASE_URL+ '/api'}/auth/refresh`, null, {
           withCredentials: true,
         });
 

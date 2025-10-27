@@ -192,16 +192,17 @@ const deleteOne= async(req, res) => {
 
 const addToList = async(req, res) => {
     try {
+        console.log(req.params,req.body);
         const { id } = req.params;
-        const trainees = Array.isArray(req.body?.list_trainees) ? req.body.list_trainees : [];
-        if (!trainees.length) return res.status(400).json({ ok: false, message: 'list_trainees is empty' });
+        const {list_trainees} = req.body;
+        if (!list_trainees.length) return res.status(400).json({ ok: false, message: 'list_trainees is empty' });
 
         const lesson = await Lesson.findById(id);
         if (!lesson) return res.status(404).json({ ok: false, message: 'לא נמצא' });
 
         // מסננים כפולים/קיימים
         const set = new Set((lesson.list_trainees || []).map(String));
-        const toAdd = trainees.filter(t => !set.has(String(t)));
+        const toAdd = list_trainees.filter(t => !set.has(String(t)));
 
         // קיבולת
         if (lesson.list_trainees.length + toAdd.length > lesson.max_trainees) {
@@ -210,6 +211,7 @@ const addToList = async(req, res) => {
         
 
         lesson.list_trainees.push(...toAdd);
+        lesson.list_trainees = lesson.list_trainees.filter((t) => t !== null && t !== undefined); // ייחוד
         lesson.updated = new Date();
         await lesson.save();
 
