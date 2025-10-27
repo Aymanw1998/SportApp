@@ -42,7 +42,8 @@ export function calcProratedQuote({
   if(start.getTime() > new Date().getTime()) {
     
   }
-  const periodEnd = endOfLastMonth(start, months);       // סוף החודש האחרון
+  const priceAllMonth = planPrice/months;
+  const periodEnd = endOfLastMonth(start, 1);       // סוף החודש האחרון
   console.log("periodEnd", periodEnd);
   const fullStart = firstOfMonth(start);                 // תחילת החודש הראשון
   console.log("fullStart", fullStart);
@@ -70,13 +71,15 @@ export function calcProratedQuote({
   if (minFraction > 0) fraction = Math.max(fraction, minFraction);
   console.log("raw fraction", fraction);
   // עיגול למחיר נוח (ברירת מחדל לש"ח שלם)
-  console.log("fraction before round", planPrice, fraction);
-  const raw = planPrice * fraction;
+  console.log("fraction before round", priceAllMonth, fraction);
+  const raw = priceAllMonth * fraction;
   console.log("roundTo", roundTo, raw);
   const price = Math.round(raw / roundTo) * roundTo;
   console.log("final price", price);
+  const totalPrice = (priceAllMonth * (months-1))+price;
+  const totalEnd = endOfLastMonth(start, months);
   return {
-    price,
+    price: totalPrice,
     fraction,
     meetingsFull,
     meetingsActual,
