@@ -1,7 +1,7 @@
 const CANDIDATES = [
     ()=>`${location.protocol}//${location.hostname}:2025`,
     ()=>localStorage.getItem("API_OVERRIDE")||"",
-    () => `${process.env.REACT_APP_SERVER_URI || ''}`.replace(/\/+$/, '')
+    () => `${process.env.REACT_APP_SERVER_URI || ''}`
 ];
 
 export const probe = async(url, ms=800) => {
