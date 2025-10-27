@@ -1,43 +1,62 @@
 name: Build Android (Capacitor)
 
 on:
-  workflow_dispatch:  # הרצה ידנית
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    defaults:
+      run:
+        shell: bash
+        working-directory: client   # כל הפקודות ירוצו מתוך client/
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install deps (client)
-        run: |
-          cd client
-          npm ci
+      - name: Install client deps
+        run: npm ci
 
       - name: Build React
-        run: |
-          cd client
-          npm run build
+        run: npm run build
 
-      - name: Add & Sync Capacitor (android)
+      - name: Add Capacitor & Android project
         run: |
-          cd client
-          npm i @capacitor/core @capacitor/cli
-          npx cap init "SportApp" com.sportapp.app --web-dir=build --skip-prompts
+          npm i -D @capacitor/cli
+          npm i @capacitor/core
+          npx cap init "Fitness360" com.fitness360.app --web-dir=build --skip-prompts
           npx cap add android
           npx cap sync android
 
-      - name: Build APK
+      # === מה שהיה חסר: Java + Android SDK ===
+      - name: Setup Java (for Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platforms & build-tools
         run: |
-          cd client/android
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | sdkmanager --licenses
+
+      - name: Build APK (debug)
+        run: |
+          cd android
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sportapp-debug.apk
+          name: fitness360-debug.apk
           path: client/android/app/build/outputs/apk/debug/app-debug.apk
