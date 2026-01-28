@@ -7,7 +7,7 @@ import { getAllUser } from '../../WebServer/services/user/functionsUser';
 import { getAllLesson } from '../../WebServer/services/lesson/functionsLesson';
 import { getMe, logout as doLogout } from '../../WebServer/services/auth/fuctionsAuth';
 
-const dayName = (d) => ['ראשון','שני','שלישי','רביעי','חמישי'/*,'שישי','שבת'*/][Number(d) || 0];
+const dayName = (d) => ['ראשון','שני','שלישי','רביעי','חמישי', "שישי", "שבת"][Number(d) || 0];
 
 function LessonsTable({ lessons, usersById }) {
   const rows = useMemo(() => {

@@ -316,7 +316,7 @@ const EditLesson = () => {
           onChange={handleChange}
           disabled={localStorage.getItem('role') !== 'מנהל'}
         >
-          {['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'/*,'שישי','שבת'*/].map((d, i) => (
+          {['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', "שישי", "שבת"].map((d, i) => (
             <option value={i+1} key={i+1}>
               {d}
             </option>

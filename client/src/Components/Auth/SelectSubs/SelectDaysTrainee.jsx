@@ -6,7 +6,7 @@ import { toast } from "../../../ALERT/SystemToasts";
 const monthLabel = (d) =>
   `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
-const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי"]; // מציגים רק א-ה
+const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]; // מציגים רק א-ה
 
 const toHHMM = (m) => {
   const mm = Math.max(0, Math.min(24 * 60, m || 0));
@@ -62,7 +62,7 @@ const SelectDaysForTrainee = ({ selectedSubs, selected = [], setSelected, select
     const nxtY = next.getFullYear();
 
     const normalizeDay = (d) => (d >= 0 && d <= 6 ? d + 1 : d); // אם נשמר 0..6
-    const inWeek = (d) => d >= 1 && d <= 5;
+    const inWeek = (d) => d >= 1 && d <= 7;
 
     const cur = [];
     const nxt = [];
@@ -148,7 +148,7 @@ const SelectDaysForTrainee = ({ selectedSubs, selected = [], setSelected, select
           const isSelected = selected.some(
             (l) => String(l._id) === String(lesson._id)
           );
-          const dayIdx = Math.max(1, Math.min(5, Number(lesson?.date?.day))) - 1;
+          const dayIdx = Math.max(1, Math.min(7, Number(lesson?.date?.day))) - 1;
 
           return (
             <div

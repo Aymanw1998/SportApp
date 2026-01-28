@@ -7,7 +7,7 @@ import { getOne as getSubById } from '../../WebServer/services/subs/functionsSub
 import styles from './EditLesson.module.css';
 import { toast } from '../../ALERT/SystemToasts';
 
-const daysNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'/*,'שישי','שבת'*/];
+const daysNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', "שישי", "שבת"];
 const dayLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 const hourSlot = (hh) => `${String(hh).padStart(2,'0')}:00 - ${String(hh).padStart(2,'0')}:45`;
 

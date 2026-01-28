@@ -52,7 +52,7 @@
 
 .timelineGrid {
   display: grid;
-  grid-template-columns: 110px repeat(5, 1fr);  /* תוויות שעות + 5 ימים */
+  grid-template-columns: 110px repeat(7, 1fr);  /* תוויות שעות + 5 ימים */
   grid-template-rows: 52px 960px;               /* כותרות ימים + גוף (08–22 = 14h * 60px/h + שוליים) */
   column-gap: 18px;
   row-gap: 20px;
@@ -165,7 +165,7 @@
 /* --- מצב טעינה --- */
 .loaderWrap {
   display: grid;
-  grid-template-columns: 110px repeat(5, 1fr);
+  grid-template-columns: 110px repeat(7, 1fr);
   column-gap: 18px;
   row-gap: 10px;
 }

@@ -9,7 +9,7 @@ import { toast } from '../../ALERT/SystemToasts';
 /* === helpers === */
 const BASE_MIN = 8 * 60;   // 08:00
 const END_MIN  = 23 * 60;  // 22:00
-const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי'];
+const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי', "שישי", "שבת"];
 
 const toHHMM = (min) => {
   const m = Math.max(0, Math.min(min ?? 0, 24*60));
@@ -25,7 +25,7 @@ const getEnd   = (l) => l?.date?.endMin   ?? (getStart(l) + 45);
 function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLessons, navigate, onReload, onHover }) {
   // קיבוץ לימים (א׳–ה׳)
   const byDay = useMemo(() => {
-    const map = {1:[],2:[],3:[],4:[],5:[]}; // 1=א׳ .. 5=ה׳ (+6 לשמור מקום)
+    const map = {1:[],2:[],3:[],4:[],5:[], 6:[], 7:[]}; // 1=א׳ .. 5=ה׳ (+6 לשמור מקום)
     const uid = localStorage.getItem('user_id');
 
     for (const l of (lessons || [])) {
@@ -34,7 +34,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
       let day     = Number(l.date.day);
 
       if (month !== currentMonth || year !== currentYear) continue;
-      if (!(day >= 1 && day <= 5)) continue;
+      if (!(day >= 1 && day <= 7)) continue;
 
       const isMine = String(l.trainer) === String(uid) || (l.list_trainees || []).map(String).includes(String(uid));
       console.log("showMyLessons check", day, showMyLessons, isMine);
@@ -93,7 +93,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
           ))}
         </div>
 
-        {/* חמשת הימים */}
+        {/* שבעה הימים */}
         {dayNames.map((_dn, idx) => {
           const day = idx ;
           return (
@@ -105,7 +105,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
                 const rect = e.currentTarget.getBoundingClientRect();
                 const offsetY = e.clientY - rect.top;
                 const clickedMin = BASE_MIN + Math.round(offsetY);
-                navigate(`/lessons/new?day=${day}&month=${currentMonth}&year=${currentYear}&startMin=${clickedMin}`);
+                navigate(`/lessons/new?day=${day+1}&month=${currentMonth}&year=${currentYear}&startMin=${clickedMin}`);
               }}
               onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
               onDrop={(e) => {
@@ -120,7 +120,7 @@ function DesktopTimeline({ lessons, canEdit, currentMonth, currentYear, showMyLe
                 const l   = all.find(x => String(x._id) === String(lessonId));
                 if (!l) return;
 
-                rescheduleLesson(l, day, targetStartMin);
+                rescheduleLesson(l, day+1, targetStartMin);
               }}
             >
               {(byDay[day+1] || []).map(l => {
@@ -396,7 +396,7 @@ export default function ViewAllLesson() {
       {isLoading ? (
         <div className={styles.loaderWrap}>
           <div />{/* spacer */}
-          {[...Array(5)].map((_,i)=><div key={i} className={styles.loaderBox} />)}
+          {[...Array(7)].map((_,i)=><div key={i} className={styles.loaderBox} />)}
         </div>
       ) : (
         <ScheduleView
