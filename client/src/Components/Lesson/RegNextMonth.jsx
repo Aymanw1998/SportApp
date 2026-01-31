@@ -215,9 +215,13 @@ export default function RegNextMonth() {
   };
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     useEffect(() => {
+    const m = window.innerWidth <= 768;
+    console.log("isMobile", m);
+    setIsMobile(m);
+  }, [isMobile]);
+    useEffect(() => {
     const handleResize = () => {
       const m = window.innerWidth < 768;
-      console.log("isMobile", m);
       setIsMobile(m);
     };
     window.addEventListener("resize", handleResize);
@@ -225,11 +229,12 @@ export default function RegNextMonth() {
   }, []);
 
   const view = () => {
-    if(!lessons) return <h1>טוען שיעורים...</h1>
-    else if(lessons && lessons.length <= 0) return <h1>עדיין אין שיעורים לחודש הבא</h1>
+    if(!lessons) return <center><h1>טוען שיעורים...</h1></center>
+    else if(lessons && lessons.length <= 0) return <center><h1>עדיין אין שיעורים לחודש הבא</h1></center>
     else {
       return (
         <div>
+          <center>
           <h4>הרשמה למערכת של החודש הבאה</h4>
           <input
             type="text"
@@ -243,30 +248,29 @@ export default function RegNextMonth() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-              
+              </center>
           <div>
-            <table style={{ marginBottom: '20px' }}>
-              <tbody>
             {groupedByDay && groupedByDay.map((list, dayIdx) => {
               const filtered = normalizedSearch ? list.filter(matchSearch) : list;
               if (!filtered.length) return null;
               return (
-                <div key={dayIdx} className={styles.chips}>
-                  <tr>
-                  <td><b style={{ fontSize: "20px", }}>{daysNames[dayIdx]}: </b></td>
+                <div key={dayIdx}>
+                  {!isMobile && <b style={{ fontSize: "20px", margin: "100px"}}>{daysNames[dayIdx]}: </b>}
+                  {isMobile && <center><b style={{ fontSize: "20px", margin: "100px"}}>{daysNames[dayIdx]}: </b></center>}
                   {isMobile && <br />}
-                  {filtered && filtered.map((lesson) => {
+                  {!isMobile && filtered && filtered.map((lesson) => {
                     const alreadyIn = !!lesson.list_trainees?.includes(me?._id);
                     const isFull = (lesson.list_trainees?.length || 0) >= (lesson.max_trainees || 0);
                     const trainer = trainerNames[lesson.trainer] || 'טוען...';
                     return (
                       <>
-                      <td><label
+                      <label
                         key={lesson._id}
                         style={{
 
                           borderRadius: 10,
                           border: '1px solid #35bfe9',
+                          padding: '10px',
                           margin: '10px',
                           background: alreadyIn ? '#ecfeff' : '#fff',
                         }}
@@ -285,17 +289,50 @@ export default function RegNextMonth() {
                         <div>
                           {/* <strong>נרשמים:</strong> {(lesson.list_trainees?.length || 0)}/{lesson.max_trainees} */}
                         </div>
-                      </label></td>
+                      </label>
                       {isMobile && <hr />}
                       </>
                     );
                   })}
-                  </tr>
+                  {isMobile && filtered && filtered.map((lesson) => {
+                    const alreadyIn = !!lesson.list_trainees?.includes(me?._id);
+                    const isFull = (lesson.list_trainees?.length || 0) >= (lesson.max_trainees || 0);
+                    const trainer = trainerNames[lesson.trainer] || 'טוען...';
+                    return (
+                      <center>
+                      <label
+                        key={lesson._id}
+                        style={{
+                          
+                          borderRadius: 10,
+                          border: '1px solid #35bfe9',
+                          padding: '10px',
+                          margin: '10px',
+                          background: alreadyIn ? '#ecfeff' : '#fff',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={alreadyIn}
+                          disabled={!alreadyIn && isFull}
+                          onChange={() => toggleLesson(lesson)}
+                          style={{ marginInlineEnd: 8 }}
+                        />
+                        <div><strong>שיעור:</strong> {lesson.name}</div>
+                        <div><strong>יום:</strong> {dayLetter[lesson.date.day - 1]}</div>
+                        <div><strong>שעה:</strong> {`${toHHMM(getStart(lesson))}–${toHHMM(getEnd(lesson))}`}</div>
+                        {/* <div><strong>מאמן:</strong> {trainer}</div> */}
+                        <div>
+                          {/* <strong>נרשמים:</strong> {(lesson.list_trainees?.length || 0)}/{lesson.max_trainees} */}
+                        </div>
+                      </label>
+                      {isMobile && <hr />}
+                      </center>
+                    );
+                  })}
                 </div>
               );
             })}
-            </tbody>
-            </table>
           </div>
 
           <div className={styles.buttonRow}>
@@ -325,7 +362,7 @@ export default function RegNextMonth() {
   return(
     <>
       <h1 style={{textAlign: "center", borderBottom: "8px solid #080707ff"}}>רישום למערכת שעות </h1>
-      <center>{view()}</center>
+      <div>{view()}</div>
     </>
   )
 }
