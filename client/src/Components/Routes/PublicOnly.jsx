@@ -27,7 +27,7 @@ export default function PublicOnly() {
 
   useEffect(() => {
     let cancel = false;
-
+    
     (async () => {
       // 1) יש access בתוקף?
       const token = localStorage.getItem('accessToken');

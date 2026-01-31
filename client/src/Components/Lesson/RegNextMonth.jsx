@@ -9,7 +9,15 @@ import { toast } from '../../ALERT/SystemToasts';
 
 const daysNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', "שישי", "שבת"];
 const dayLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
-const hourSlot = (hh) => `${String(hh).padStart(2,'0')}:00 - ${String(hh).padStart(2,'0')}:45`;
+const toHHMM = (min) => {
+  const m = Math.max(0, Math.min(min ?? 0, 24*60));
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+};
+const minuteToPx = (min) => Math.max(0, Math.min((min ?? BASE_MIN) - BASE_MIN, END_MIN - BASE_MIN));
+const getStart = (l) => l?.date?.startMin ?? ((l?.date?.hh ?? 8) * 60);
+const getEnd   = (l) => l?.date?.endMin   ?? (getStart(l) + 45);
 
 export default function RegNextMonth() {
   
@@ -151,7 +159,7 @@ export default function RegNextMonth() {
     const tokens = [
       l.name || '',
       dayLetter[l.date.day] || '',
-      hourSlot(l.date.hh),
+      `${toHHMM(getStart(l))}–${toHHMM(getEnd(l))}`,
       trainer,
       `${(l.list_trainees?.length || 0)}/${l.max_trainees || 0}`,
     ]
@@ -205,7 +213,17 @@ export default function RegNextMonth() {
       toast.error('שגיאה בשמירה');
     }
   };
-  
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    useEffect(() => {
+    const handleResize = () => {
+      const m = window.innerWidth < 768;
+      console.log("isMobile", m);
+      setIsMobile(m);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const view = () => {
     if(!lessons) return <h1>טוען שיעורים...</h1>
     else if(lessons && lessons.length <= 0) return <h1>עדיין אין שיעורים לחודש הבא</h1>
@@ -227,25 +245,29 @@ export default function RegNextMonth() {
           />
               
           <div>
+            <table style={{ marginBottom: '20px' }}>
+              <tbody>
             {groupedByDay && groupedByDay.map((list, dayIdx) => {
               const filtered = normalizedSearch ? list.filter(matchSearch) : list;
               if (!filtered.length) return null;
               return (
-                <div key={dayIdx} style={{ marginBottom: 16 }}>
-                  <h1 style={{ margin: '8px 0' }}>{daysNames[dayIdx]}</h1>
+                <div key={dayIdx} className={styles.chips}>
+                  <tr>
+                  <td><b style={{ fontSize: "20px", }}>{daysNames[dayIdx]}: </b></td>
+                  {isMobile && <br />}
                   {filtered && filtered.map((lesson) => {
                     const alreadyIn = !!lesson.list_trainees?.includes(me?._id);
                     const isFull = (lesson.list_trainees?.length || 0) >= (lesson.max_trainees || 0);
                     const trainer = trainerNames[lesson.trainer] || 'טוען...';
                     return (
-                      <label
+                      <>
+                      <td><label
                         key={lesson._id}
                         style={{
-                          display: 'block',
+
                           borderRadius: 10,
-                          border: '1px solid #ccc',
-                          margin: '10px 0',
-                          padding: 10,
+                          border: '1px solid #35bfe9',
+                          margin: '10px',
                           background: alreadyIn ? '#ecfeff' : '#fff',
                         }}
                       >
@@ -257,18 +279,23 @@ export default function RegNextMonth() {
                           style={{ marginInlineEnd: 8 }}
                         />
                         <div><strong>שיעור:</strong> {lesson.name}</div>
-                        <div><strong>יום:</strong> {dayLetter[lesson.date.day]}</div>
-                        <div><strong>שעה:</strong> {hourSlot(lesson.date.hh)}</div>
+                        <div><strong>יום:</strong> {dayLetter[lesson.date.day - 1]}</div>
+                        <div><strong>שעה:</strong> {`${toHHMM(getStart(lesson))}–${toHHMM(getEnd(lesson))}`}</div>
                         {/* <div><strong>מאמן:</strong> {trainer}</div> */}
                         <div>
                           {/* <strong>נרשמים:</strong> {(lesson.list_trainees?.length || 0)}/{lesson.max_trainees} */}
                         </div>
-                      </label>
+                      </label></td>
+                      {isMobile && <hr />}
+                      </>
                     );
                   })}
+                  </tr>
                 </div>
               );
             })}
+            </tbody>
+            </table>
           </div>
 
           <div className={styles.buttonRow}>

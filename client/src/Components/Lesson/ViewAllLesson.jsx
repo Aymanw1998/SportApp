@@ -262,7 +262,12 @@ export default function ViewAllLesson() {
 
   const [monthOffset, setMonthOffset] = useState(Number(localStorage.getItem("monthOffset")) || 0);
   const currentMonthInfo = useMemo(() => {
-    const d = new Date(); d.setMonth(d.getMonth() + monthOffset);
+    console.log("monthOffset", monthOffset);
+    const d = new Date(); 
+    console.log("d", d);
+    d.setDate(1);
+    d.setMonth(d.getMonth() + monthOffset);
+    console.log("new d", d);
     return { month: d.getMonth()+1, year: d.getFullYear(), label: `${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` };
   }, [monthOffset]);
 
@@ -310,7 +315,7 @@ export default function ViewAllLesson() {
 
       <div className={styles.monthControls}>
         <button className={styles.navBtn}
-          onClick={() => { const next=(Number(localStorage.getItem("monthOffset"))||0)+1; localStorage.setItem("monthOffset",next); setMonthOffset(v=>v+1); }}>
+          onClick={() => { const next=(Number(localStorage.getItem("monthOffset")))+1; localStorage.setItem("monthOffset",next); setMonthOffset(v=>v+1); }}>
           חודש אחרי
         </button>
         <button className={styles.navBtn} style={{backgroundColor: "greenyellow"}}
@@ -318,7 +323,7 @@ export default function ViewAllLesson() {
           חודש נוכחי
         </button>
         <button className={styles.navBtn}
-          onClick={() => { const prev=(Number(localStorage.getItem("monthOffset"))||0)-1; localStorage.setItem("monthOffset",prev); setMonthOffset(v=>v-1); }}>
+          onClick={() => { const prev=(Number(localStorage.getItem("monthOffset")))-1; localStorage.setItem("monthOffset",prev); setMonthOffset(v=>v-1); }}>
           חודש קודם
         </button>
       </div>

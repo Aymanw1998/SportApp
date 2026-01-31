@@ -51,6 +51,7 @@ export default function LoginPage() {
             }
 
             // נווט חזרה לנתיב המבוקש או לדאשבורד
+            
             const from = location.state?.from?.pathname || '/dashboard/get';
             navigate(from, { replace: true });
         } catch (err) {
